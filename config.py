@@ -18,11 +18,20 @@ DEFAULT_CONFIG = {
     "update_time": "09:00",
     "last_update": None,
     "hd": True,
-    "data_source": "apod",          # "apod" | "earth"
-    "earth_resolution": 2200,       # Himawari-8 分辨率: 550 | 1100 | 2200 | 4400
-    "earth_auto_refresh": True,     # 地球自动刷新
-    "earth_refresh_interval": 10,   # 地球刷新间隔（分钟）
-    "wallpaper_style": "fill",      # 壁纸样式: center | tile | stretch | fit | fill
+    "data_source": "apod",              # "apod" | "satellite" | "sdo"
+    "satellite_id": "himawari",         # 默认卫星
+    "satellite_color": "natural_color", # 颜色模式: natural_color | geocolor
+    "satellite_size": 1080,             # 卫星图目标尺寸
+    "satellite_auto_refresh": True,     # 卫星自动刷新
+    "satellite_refresh_interval": 10,   # 卫星刷新间隔（分钟）
+    "sdo_band": "0304",                 # SDO 波段
+    "sdo_size": 2048,                   # SDO 目标尺寸
+    "sdo_auto_refresh": True,           # SDO 自动刷新
+    "sdo_refresh_interval": 60,         # SDO 刷新间隔（分钟）
+    "earth_resolution": 2200,           # [兼容] Himawari-8 分辨率
+    "earth_auto_refresh": True,         # [兼容]
+    "earth_refresh_interval": 10,       # [兼容]
+    "wallpaper_style": "fill",
 }
 
 # 壁纸样式映射（注册表值）

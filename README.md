@@ -1,9 +1,11 @@
-# NASA 卫星壁纸 (NASA Satellite Wallpaper)
+# Live Earth Wallpaper
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-双数据源 Windows 桌面壁纸软件，支持 **NASA 每日天文图片 (APOD)** 和 **Himawari-8 实时地球卫星图**。
+多数据源 Windows 桌面壁纸软件，支持 **NASA 天文图片 (APOD)**、**地球静止卫星实时影像** 和 **NASA SDO 太阳观测**。
+
+基于 [Live-Earth-Wallpapers](https://github.com/lennart-rth/Live-Earth-Wallpapers) 的卫星数据源架构，使用 CIRA RAMMB-Slider 获取多颗地球静止卫星的实时影像。
 
 ## 功能特性
 
@@ -11,38 +13,44 @@
 - 自动获取 NASA 天文每日图片 (Astronomy Picture of the Day)
 - **10 个智能分类**：星云、星系、行星、地球、太阳、月球、极光、彗星、恒星、空间站
 - 基于关键词匹配自动分类，切换类别即可浏览对应图片
-- 每天在设定时间自动检查更新，匹配选中分类时自动更换壁纸
 
-### 🌍 实时地球模式
-- 数据来源：日本气象卫星 **Himawari-8**（数据产品 D531106）
-- 每 10 分钟拍摄一张地球全盘图，约 20-30 分钟延迟
-- **2200x2200 高清分辨率**（4x4=16 瓦片并行下载拼接）
-- 支持自动刷新：每 10 分钟获取最新图并同步更新壁纸
+### 🛰 卫星影像模式
+- 支持 **6 颗地球静止卫星**：
+  - GOES-16 (美洲)、GOES-18 (美洲西)
+  - Himawari-8 (亚太)、GK2A (韩国)
+  - Meteosat-0deg (欧洲/非洲)、Meteosat-9 (印度洋)
+- 颜色模式：自然色 / 地球色 (含夜景)
+- 分辨率可选：标准 / 高清 / 超清（瓦片拼接）
+- 基于 **CIRA RAMMB-Slider** 数据
+- 每 10 分钟自动刷新
+
+### ☀ 太阳观测模式
+- 数据来源：**NASA SDO** (Solar Dynamics Observatory)
+- 多波段支持：304 Å (色球层)、171 Å (日冕)、连续光球 (太阳黑子)、带磁场线叠加
+- 约每 15-60 分钟更新一张
 
 ### 🖼 壁纸设置
 - 支持多种壁纸样式：居中、平铺、拉伸、适应、填充
-- 壁纸右上角自动标注来源和拍摄时间（半透圆角角标）
-- 通过 Windows 注册表控制壁纸样式
+- 壁纸右上角自动标注来源和拍摄时间
+- Windows 注册表控制壁纸样式
 
 ### ⚡ 后台运行
 - 点击关闭按钮弹出选择对话框："最小化到任务栏" 或 "退出程序"
-- 最小化后调度器在后台持续运行，自动按周期更新壁纸
-- 从任务栏点击图标即可恢复窗口
+- 最小化后调度器在后台持续运行，自动更新壁纸
 
 ## 系统要求
 
 - **操作系统**: Windows 10/11
 - **Python**: 3.10+
-- **依赖**: `requests>=2.31.0`, `Pillow>=10.0.0`
+- **依赖**: `requests`, `Pillow (PIL)`
 
 ## 安装 & 运行
 
 ### 方式一：源码运行
 
 ```bash
-# 克隆仓库
-git clone https://github.com/yourusername/nasa-wallpaper.git
-cd nasa-wallpaper
+git clone https://github.com/suika3733/live-earth-wallpaper.git
+cd live-earth-wallpaper
 
 # 安装依赖
 pip install -r requirements.txt
@@ -51,33 +59,33 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 方式二：打包为 EXE（无需 Python 环境）
+### 方式二：打包为 EXE
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name "NASA_Wallpaper" --collect-all PIL main.py
-# EXE 生成在 dist/NASA_Wallpaper.exe
+pyinstaller --onefile --windowed --name "LiveEarthWallpaper" --collect-all PIL main.py
 ```
 
 ### 方式三：直接下载
 
-从 [Releases](https://github.com/yourusername/nasa-wallpaper/releases) 页面下载 `NASA_Wallpaper_v*.zip`，解压双击运行。
+从 [Releases](https://github.com/suika3733/live-earth-wallpaper/releases) 页面下载压缩包，解压双击运行。
 
 > 首次启动会自动获取近 10 天的 NASA APOD 图片到本地缓存。
 
 ## 项目结构
 
 ```
-nasa_wallpaper/
-├── main.py           # 主程序 - tkinter GUI 界面
-├── nasa_api.py       # NASA APOD API 客户端
-├── earth_api.py      # Himawari-8 卫星数据获取与拼接
-├── categorizer.py    # 图片关键词分类器
-├── wallpaper.py      # Windows 壁纸设置 + 水印
-├── scheduler.py      # 后台调度器 (APOD 每天 / Earth 每10分钟)
-├── config.py         # 配置管理与数据持久化
-├── requirements.txt  # Python 依赖
-└── LICENSE           # MIT 协议
+├── main.py              # 主程序 - tkinter GUI (3 面板)
+├── providers/           # 数据源提供商
+│   ├── geostationary.py # 地球静止卫星 (RAMMB-Slider)
+│   └── sdo.py           # NASA SDO 太阳图像
+├── nasa_api.py          # NASA APOD API
+├── earth_api.py         # [旧] Himawari-8 直连 (保留兼容)
+├── categorizer.py       # 图片关键词分类器
+├── wallpaper.py         # Windows 壁纸设置 + 水印
+├── scheduler.py         # 后台调度器
+├── config.py            # 配置管理
+└── requirements.txt     # Python 依赖
 ```
 
 ### 数据存储
@@ -86,31 +94,25 @@ nasa_wallpaper/
 
 | 路径 | 说明 |
 |------|------|
-| `config.json` | 用户配置 (API Key、分类、样式等) |
-| `metadata.json` | 获取过的图片元数据 |
+| `config.json` | 用户配置 |
+| `metadata.json` | NASA APOD 元数据 |
 | `cache/` | 图片缓存 |
+| `cache/satellite/` | 卫星影像缓存 |
+| `cache/sdo/` | SDO 太阳图像缓存 |
 | `wallpaper/` | 当前壁纸副本 |
-| `watermarked/` | 带水印的壁纸图片 |
-
-## NASA API Key
-
-默认使用 `DEMO_KEY`（每小时限流 30 次，每天 100 次）。
-
-建议访问 [https://api.nasa.gov/](https://api.nasa.gov/) 申请免费 API Key，在软件「设置」中填入，可获得每小时 1000 次额度。
-
-## 技术栈
-
-- **GUI**: tkinter (深色太空主题)
-- **图像处理**: Pillow (PIL) — JPEG 水印、瓦片拼接
-- **网络请求**: requests — NASA API + Himawari-8 NICT
-- **打包**: PyInstaller (--onefile --windowed)
-- **多线程**: threading.Thread + ThreadPoolExecutor (并行下载瓦片)
-- **壁纸设置**: ctypes → SystemParametersInfoW + winreg 注册表
+| `watermarked/` | 带水印壁纸 |
 
 ## 数据来源
 
-- [NASA APOD API](https://api.nasa.gov/) — Astronomy Picture of the Day
-- [NICT Himawari-8](https://himawari8.nict.go.jp/) — 日本气象卫星实时地球影像
+| 数据 | 来源 |
+|------|------|
+| 天文图片 | [NASA APOD API](https://api.nasa.gov/) |
+| 卫星影像 | [CIRA RAMMB-Slider](https://rammb-slider.cira.colostate.edu) |
+| 太阳图像 | [NASA SDO](https://sdo.gsfc.nasa.gov) |
+
+## 致谢
+
+本项目卫星数据源架构基于 [lennart-rth/Live-Earth-Wallpapers](https://github.com/lennart-rth/Live-Earth-Wallpapers) (GPL v3)。
 
 ## License
 

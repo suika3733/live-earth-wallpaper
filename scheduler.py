@@ -1,4 +1,4 @@
-"""调度模块 - 支持 NASA APOD 每日 + Himawari-8 每小时更新"""
+"""调度模块 - 支持 NASA APOD + 多卫星 + SDO 更新"""
 import threading
 import logging
 from datetime import datetime, timedelta
@@ -7,6 +7,7 @@ from config import load_config, save_config, load_metadata, save_metadata
 from nasa_api import fetch_apod, download_image
 from categorizer import categorize_image
 from wallpaper import set_wallpaper, watermark_image
+from providers import GEOSTATIONARY_SATELLITES, fetch_satellite_image, fetch_sdo_image
 
 logger = logging.getLogger(__name__)
 
@@ -60,32 +61,57 @@ def check_and_update() -> bool:
     return False
 
 
-def check_and_update_earth() -> bool:
-    """Himawari-8 实时地球更新（2200x2200 高清）"""
-    from earth_api import fetch_earth_image
-
+def check_and_update_satellite() -> bool:
+    """卫星影像更新（RAMMB-Slider 多卫星）"""
     config = load_config()
+    sat = config.get("satellite_id", "himawari")
+    color = config.get("satellite_color", "natural_color")
+    size = config.get("satellite_size", 1080)
+    name = GEOSTATIONARY_SATELLITES.get(sat, {}).get("name", sat)
     style = config.get("wallpaper_style", "fill")
 
-    logger.info("Earth update check @ 2200x2200")
-    path = fetch_earth_image(resolution=2200)
+    logger.info(f"Satellite update: {sat} ({color}, {size}px)")
+    path = fetch_satellite_image(satellite=sat, color=color, target_size=size)
     if not path:
-        logger.warning("Earth image download failed")
+        logger.warning("Satellite image download failed")
         return False
 
     now = datetime.now()
-    wp_path = watermark_image(
-        path,
-        left_text="来源: Himawari-8 气象卫星",
+    wp_path = watermark_image(path,
+        left_text=f"来源: {name}",
         right_text=f"拍摄时间: {now.strftime('%Y-%m-%d %H:%M')} (UTC+8)",
-        output_key="earth_live",
-    )
-    if set_wallpaper(wp_path, "earth_live", style=style):
-        config["last_earth_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        output_key=f"sat_{sat}")
+    if set_wallpaper(wp_path, f"sat_{sat}", style=style):
+        config["last_sat_update"] = now.strftime("%Y-%m-%d %H:%M:%S")
         save_config(config)
-        logger.info("Earth wallpaper updated")
+        logger.info(f"Satellite wallpaper updated: {name}")
         return True
+    return False
 
+
+def check_and_update_sdo() -> bool:
+    """SDO 太阳图像更新"""
+    config = load_config()
+    band = config.get("sdo_band", "0304")
+    style = config.get("wallpaper_style", "fill")
+    name = __import__("providers.sdo", fromlist=["SDO_BANDS"]).SDO_BANDS.get(band, {}).get("name", band)
+
+    logger.info(f"SDO update: {band}")
+    path = fetch_sdo_image(band=band)
+    if not path:
+        logger.warning("SDO image download failed")
+        return False
+
+    now = datetime.now()
+    wp_path = watermark_image(path,
+        left_text="来源: NASA SDO 太阳观测",
+        right_text=f"波段: {name} | {now.strftime('%Y-%m-%d %H:%M')}",
+        output_key=f"sdo_{band}")
+    if set_wallpaper(wp_path, f"sdo_{band}", style=style):
+        config["last_sdo_update"] = now.strftime("%Y-%m-%d %H:%M:%S")
+        save_config(config)
+        logger.info(f"SDO wallpaper updated: {name}")
+        return True
     return False
 
 
@@ -98,21 +124,27 @@ def _scheduler_loop():
             config = load_config()
             data_source = config.get("data_source", "apod")
 
-            if data_source == "earth":
-                # Himawari-8: 每 10 分钟检查一次（匹配卫星拍摄频率）
+            if data_source == "satellite":
                 now = datetime.now()
-                minute_key = now.strftime("%Y-%m-%d %H:%M")
                 minute_key_10 = now.strftime("%Y-%m-%d %H:") + str((now.minute // 10) * 10).zfill(2)
-
                 if not config.get("auto_update", True):
                     _stop_event.wait(300)
                     continue
-
                 if _last_earth_tick != minute_key_10:
-                    check_and_update_earth()
+                    check_and_update_satellite()
                     _last_earth_tick = minute_key_10
+                _stop_event.wait(300)
 
-                _stop_event.wait(300)  # 每 5 分钟检查一次
+            elif data_source == "sdo":
+                now = datetime.now()
+                minute_key_60 = now.strftime("%Y-%m-%d %H")
+                if not config.get("auto_update", True):
+                    _stop_event.wait(300)
+                    continue
+                if _last_earth_tick != minute_key_60:
+                    check_and_update_sdo()
+                    _last_earth_tick = minute_key_60
+                _stop_event.wait(300)
             else:
                 # NASA APOD: 每天检查一次
                 if not config.get("auto_update", True):

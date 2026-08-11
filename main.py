@@ -1,4 +1,4 @@
-"""NASA Wallpaper + 实时地球 - 双数据源壁纸软件"""
+"""Live Earth Wallpaper - 多数据源卫星壁纸软件"""
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import threading
@@ -16,6 +16,7 @@ from nasa_api import fetch_apod_range, download_image, ApodImage
 from categorizer import categorize_image, get_category_name, get_all_category_keys
 from wallpaper import set_wallpaper, watermark_image
 from scheduler import start_scheduler, stop_scheduler, is_scheduler_running, check_and_update
+from providers import GEOSTATIONARY_SATELLITES, SDO_BANDS, fetch_satellite_image, fetch_sdo_image
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +39,8 @@ YELLOW = "#f9d423"
 BLUE = "#2d8cf0"
 BLUE_HOVER = "#4aa3f7"
 EARTH_ACCENT = "#00b4d8"
+SDO_ACCENT = "#ff8c00"
+SAT_ACCENT = "#00b4d8"
 
 FONT_FAMILY = ("Microsoft YaHei", "微软雅黑", "PingFang SC", "Arial")
 FONT_TITLE = (FONT_FAMILY[0], 14, "bold")
@@ -89,7 +92,7 @@ class ModernButton(tk.Canvas):
 class NASAApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("NASA 卫星壁纸")
+        self.root.title("Live Earth Wallpaper - 卫星壁纸")
         self.root.geometry("1300x850")
         self.root.configure(bg=BG_MAIN)
         self.root.minsize(1100, 700)
@@ -97,11 +100,22 @@ class NASAApp:
         self.config = load_config()
         self.metadata = load_metadata()
         self.data_source = self.config.get("data_source", "apod")
-        self.earth_image_path = None
-        self.earth_auto_refresh = self.config.get("earth_auto_refresh", True)
-        self.earth_refresh_interval = self.config.get("earth_refresh_interval", 10)  # 分钟
-        self._earth_timer_id = None  # tkinter after ID
-        self._earth_next_refresh = None  # datetime of next refresh
+        self.sat_image_path = None
+        self.sat_auto_refresh = self.config.get("satellite_auto_refresh", True)
+        self.sat_refresh_interval = self.config.get("satellite_refresh_interval", 10)
+        self._sat_timer_id = None
+        self._sat_next_refresh = None
+
+        self.sdo_image_path = None
+        self.sdo_auto_refresh = self.config.get("sdo_auto_refresh", True)
+        self.sdo_refresh_interval = self.config.get("sdo_refresh_interval", 60)
+        self._sdo_timer_id = None
+        self._sdo_next_refresh = None
+
+        # satellite panel vars
+        self.selected_satellite = tk.StringVar(value=self.config.get("satellite_id", "himawari"))
+        self.selected_color = tk.StringVar(value=self.config.get("satellite_color", "natural_color"))
+        self.selected_sdo_band = tk.StringVar(value=self.config.get("sdo_band", "0304"))
 
         # APOD 数据
         self.images_by_cat = {key: [] for key in get_all_category_keys()}
@@ -128,24 +142,30 @@ class NASAApp:
         header.pack(fill="x", side="top")
         header.pack_propagate(False)
 
-        tk.Label(header, text="🚀 NASA 卫星壁纸", bg=BG_CARD, fg="white",
+        tk.Label(header, text="Live Earth Wallpaper", bg=BG_CARD, fg="white",
                  font=(FONT_FAMILY[0], 16, "bold")).pack(side="left", padx=18, pady=8)
 
         # 数据源切换标签
         ds_frame = tk.Frame(header, bg=BG_CARD)
         ds_frame.pack(side="left", padx=(20, 0))
 
-        self.btn_apod = ModernButton(ds_frame, text="🔭 NASA APOD",
+        self.btn_apod = ModernButton(ds_frame, text="🔭 天文图片",
                                      command=lambda: self._switch_panel("apod"),
-                                     width=110, height=30, bg=ACCENT2, hover_bg="#1a4a7a",
+                                     width=90, height=30, bg=ACCENT2, hover_bg="#1a4a7a",
                                      font=(FONT_FAMILY[0], 9))
-        self.btn_apod.pack(side="left", padx=3)
+        self.btn_apod.pack(side="left", padx=2)
 
-        self.btn_earth = ModernButton(ds_frame, text="🌍 实时地球",
-                                      command=lambda: self._switch_panel("earth"),
-                                      width=100, height=30, bg="#1a3a4a",
-                                      hover_bg="#0f3460", font=(FONT_FAMILY[0], 9))
-        self.btn_earth.pack(side="left", padx=3)
+        self.btn_sat = ModernButton(ds_frame, text="🛰 卫星影像",
+                                    command=lambda: self._switch_panel("satellite"),
+                                    width=90, height=30, bg="#1a3a4a",
+                                    hover_bg="#0f3460", font=(FONT_FAMILY[0], 9))
+        self.btn_sat.pack(side="left", padx=2)
+
+        self.btn_sdo = ModernButton(ds_frame, text="☀ 太阳观测",
+                                    command=lambda: self._switch_panel("sdo"),
+                                    width=90, height=30, bg="#1a3a4a",
+                                    hover_bg="#0f3460", font=(FONT_FAMILY[0], 9))
+        self.btn_sdo.pack(side="left", padx=2)
 
         # 右上角按钮
         menu_frame = tk.Frame(header, bg=BG_CARD)
@@ -246,97 +266,164 @@ class NASAApp:
                                           width=100, height=32, bg=ACCENT, hover_bg=ACCENT_HOVER)
         self.btn_wallpaper.pack(side="left", padx=2)
 
-        # === 实时地球面板 ===
-        self.panel_earth = tk.Frame(body, bg=BG_MAIN)
+        # === 卫星影像面板 ===
+        self.panel_sat = tk.Frame(body, bg=BG_MAIN)
 
-        earth_left = tk.Frame(self.panel_earth, bg=BG_MAIN, width=150)
-        earth_left.pack(side="left", fill="y", padx=(0, 10))
-        earth_left.pack_propagate(False)
+        sat_left = tk.Frame(self.panel_sat, bg=BG_MAIN, width=170)
+        sat_left.pack(side="left", fill="y", padx=(0, 10))
+        sat_left.pack_propagate(False)
 
-        tk.Label(earth_left, text="🌍 实时地球", bg=BG_MAIN, fg=FG_TEXT,
+        tk.Label(sat_left, text="🛰 卫星影像", bg=BG_MAIN, fg=FG_TEXT,
                  font=FONT_TITLE).pack(anchor="w", pady=(0, 8))
 
-        info_card = tk.Frame(earth_left, bg=BG_CARD, highlightbackground=BORDER,
-                             highlightthickness=1)
+        # 卫星选择
+        tk.Label(sat_left, text="卫星:", bg=BG_MAIN, fg=FG_DIM, font=FONT_SMALL).pack(anchor="w")
+        sat_list = list(GEOSTATIONARY_SATELLITES.keys())
+        sat_names = [GEOSTATIONARY_SATELLITES[s]["name"] for s in sat_list]
+        self.sat_combo = ttk.Combobox(sat_left, textvariable=self.selected_satellite,
+                                      values=sat_list, state="readonly",
+                                      font=(FONT_FAMILY[0], 8), width=22)
+        self.sat_combo.pack(fill="x", pady=(0, 8))
+        # Map display names
+        self._sat_display = dict(zip(sat_list, sat_names))
+
+        # 颜色模式
+        tk.Label(sat_left, text="颜色:", bg=BG_MAIN, fg=FG_DIM, font=FONT_SMALL).pack(anchor="w")
+        color_frame = tk.Frame(sat_left, bg=BG_MAIN)
+        color_frame.pack(fill="x", pady=(0, 8))
+        for val, label in [("natural_color", "自然色"), ("geocolor", "地球色")]:
+            tk.Radiobutton(color_frame, text=label, variable=self.selected_color, value=val,
+                           bg=BG_MAIN, fg=FG_TEXT, selectcolor=BG_INPUT,
+                           activebackground=BG_MAIN, activeforeground=FG_TEXT,
+                           font=FONT_SMALL).pack(anchor="w")
+
+        tk.Label(sat_left, text="分辨率:", bg=BG_MAIN, fg=FG_DIM, font=FONT_SMALL).pack(anchor="w")
+        self.sat_size_var = tk.StringVar(value="1080")
+        sz_frame = tk.Frame(sat_left, bg=BG_MAIN)
+        sz_frame.pack(fill="x", pady=(0, 8))
+        for val, lab in [("688", "标准"), ("1100", "高清"), ("2200", "超清")]:
+            tk.Radiobutton(sz_frame, text=lab, variable=self.sat_size_var, value=val,
+                           bg=BG_MAIN, fg=FG_TEXT, selectcolor=BG_INPUT,
+                           activebackground=BG_MAIN, activeforeground=FG_TEXT,
+                           font=FONT_SMALL).pack(anchor="w")
+
+        info_card = tk.Frame(sat_left, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
         info_card.pack(fill="both", expand=True)
+        self.sat_info_label = tk.Label(info_card, text="", bg=BG_CARD,
+                                       fg=FG_DIM, font=FONT_SMALL, justify="left",
+                                       padx=8, pady=8, wraplength=140)
+        self.sat_info_label.pack(fill="both", expand=True)
 
-        earth_info_text = (
-            "数据来源\n"
-            "━━━━━━━━━━━━\n"
-            "日本 Himawari-8\n"
-            "气象卫星\n\n"
-            "更新频率\n"
-            "━━━━━━━━━━━━\n"
-            "每 10 分钟一张\n"
-            "实时地球全盘图\n\n"
-            "分辨率\n"
-            "━━━━━━━━━━━━\n"
-            "2200x2200 像素\n"
-            "16 瓦片拼接\n\n"
-            "延迟\n"
-            "━━━━━━━━━━━━\n"
-            "约 20-30 分钟\n\n"
-            "自动刷新\n"
-            "━━━━━━━━━━━━\n"
-            "开启后每 10 分钟\n"
-            "自动获取最新图\n"
-            "设为壁纸同步更新"
-        )
-        earth_info_label = tk.Label(info_card, text=earth_info_text, bg=BG_CARD,
-                                    fg=FG_DIM, font=FONT_SMALL, justify="left", padx=12, pady=10)
-        earth_info_label.pack(fill="both", expand=True)
+        # 卫星预览区
+        sat_right = tk.Frame(self.panel_sat, bg=BG_MAIN)
+        sat_right.pack(side="left", fill="both", expand=True)
 
-        # 地球预览区
-        earth_right = tk.Frame(self.panel_earth, bg=BG_MAIN)
-        earth_right.pack(side="left", fill="both", expand=True)
+        sat_preview = tk.Frame(sat_right, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        sat_preview.pack(fill="both", expand=True, pady=(0, 10))
 
-        earth_preview = tk.Frame(earth_right, bg=BG_CARD, highlightbackground=BORDER,
-                                 highlightthickness=1)
-        earth_preview.pack(fill="both", expand=True, pady=(0, 10))
+        self.sat_preview = tk.Label(sat_preview, bg=BG_CARD,
+                                    text="🛰\n选择卫星后点击获取最新影像",
+                                    fg=FG_DIM, font=(FONT_FAMILY[0], 14))
+        self.sat_preview.pack(fill="both", expand=True)
 
-        self.earth_preview = tk.Label(earth_preview, bg=BG_CARD,
-                                      text="🌍\n点击下方按钮获取\n最新地球卫星图",
-                                      fg=FG_DIM, font=(FONT_FAMILY[0], 14))
-        self.earth_preview.pack(fill="both", expand=True)
+        self.sat_status = tk.Label(sat_preview, bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL)
+        self.sat_status.place(relx=0.02, rely=0.97, anchor="sw")
 
-        self.earth_status = tk.Label(earth_preview, bg=BG_CARD, fg=FG_DIM,
-                                     font=FONT_SMALL)
-        self.earth_status.place(relx=0.02, rely=0.97, anchor="sw")
+        # 底部控制
+        sat_ctrl = tk.Frame(sat_right, bg=BG_MAIN, height=45)
+        sat_ctrl.pack(fill="x", side="bottom")
+        sat_ctrl.pack_propagate(False)
 
-        # 地球底部控制
-        earth_ctrl = tk.Frame(earth_right, bg=BG_MAIN, height=45)
-        earth_ctrl.pack(fill="x", side="bottom")
-        earth_ctrl.pack_propagate(False)
+        self.btn_sat_fetch = ModernButton(sat_ctrl, text="📡 获取最新影像",
+                                          command=self._fetch_satellite,
+                                          width=120, height=32, bg=SAT_ACCENT, hover_bg="#00d4f4")
+        self.btn_sat_fetch.pack(side="left", padx=(20, 2))
 
-        left_ec = tk.Frame(earth_ctrl, bg=BG_MAIN)
-        left_ec.pack(side="left")
+        self.btn_sat_auto = ModernButton(sat_ctrl,
+                                         text="🔄 自动刷新: 开" if self.sat_auto_refresh else "🔄 自动刷新: 关",
+                                         command=self._toggle_sat_auto_refresh,
+                                         width=120, height=32,
+                                         bg=GREEN if self.sat_auto_refresh else ACCENT2,
+                                         hover_bg="#6ee7c5" if self.sat_auto_refresh else "#1a4a7a")
+        self.btn_sat_auto.pack(side="left", padx=5)
 
-        self.btn_earth_fetch = ModernButton(earth_ctrl, text="📡 获取最新图片",
-                                            command=self._fetch_earth,
-                                            width=120, height=32, bg=EARTH_ACCENT,
-                                            hover_bg="#00d4f4")
-        self.btn_earth_fetch.pack(side="left", padx=(20, 2))
+        self.sat_countdown = tk.Label(sat_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=(FONT_FAMILY[0], 9))
+        self.sat_countdown.pack(side="left", padx=8)
 
-        # 自动刷新开关
-        self.btn_auto_refresh = ModernButton(earth_ctrl,
-                                             text="🔄 自动刷新: 开" if self.earth_auto_refresh else "🔄 自动刷新: 关",
-                                             command=self._toggle_earth_auto_refresh,
-                                             width=120, height=32,
-                                             bg=GREEN if self.earth_auto_refresh else ACCENT2,
-                                             hover_bg="#6ee7c5" if self.earth_auto_refresh else "#1a4a7a")
-        self.btn_auto_refresh.pack(side="left", padx=5)
+        right_sc = tk.Frame(sat_ctrl, bg=BG_MAIN)
+        right_sc.pack(side="right")
+        self.btn_sat_wp = ModernButton(right_sc, text="🖼 设为壁纸",
+                                       command=self._set_sat_wallpaper,
+                                       width=100, height=32, bg=ACCENT, hover_bg=ACCENT_HOVER)
+        self.btn_sat_wp.pack(side="left", padx=2)
 
-        # 倒计时标签
-        self.earth_countdown = tk.Label(earth_ctrl, text="", bg=BG_MAIN, fg=FG_DIM,
-                                        font=(FONT_FAMILY[0], 9))
-        self.earth_countdown.pack(side="left", padx=8)
+        # === 太阳观测面板 ===
+        self.panel_sdo = tk.Frame(body, bg=BG_MAIN)
 
-        right_ec = tk.Frame(earth_ctrl, bg=BG_MAIN)
-        right_ec.pack(side="right")
-        self.btn_earth_wp = ModernButton(right_ec, text="🖼 设为壁纸",
-                                         command=self._set_earth_wallpaper,
-                                         width=100, height=32, bg=ACCENT, hover_bg=ACCENT_HOVER)
-        self.btn_earth_wp.pack(side="left", padx=2)
+        sdo_left = tk.Frame(self.panel_sdo, bg=BG_MAIN, width=170)
+        sdo_left.pack(side="left", fill="y", padx=(0, 10))
+        sdo_left.pack_propagate(False)
+
+        tk.Label(sdo_left, text="☀ 太阳观测", bg=BG_MAIN, fg=FG_TEXT,
+                 font=FONT_TITLE).pack(anchor="w", pady=(0, 8))
+
+        tk.Label(sdo_left, text="数据来源\n━━━━━━━━━━━━\nNASA SDO\n太阳动力学天文台\n\n波段:", bg=BG_MAIN,
+                 fg=FG_DIM, font=FONT_SMALL, justify="left").pack(anchor="w", pady=(0, 4))
+
+        for key, info in SDO_BANDS.items():
+            tk.Radiobutton(sdo_left, text=f"{info['name'][:18]}",
+                           variable=self.selected_sdo_band, value=key,
+                           bg=BG_MAIN, fg=FG_TEXT, selectcolor=BG_INPUT,
+                           activebackground=BG_MAIN, activeforeground=FG_TEXT,
+                           font=FONT_SMALL).pack(anchor="w")
+
+        sdo_info_card = tk.Frame(sdo_left, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        sdo_info_card.pack(fill="both", expand=True, pady=(8, 0))
+        tk.Label(sdo_info_card, text="拍摄频率\n约每 15-60 分钟\n自动刷新每 60 分钟",
+                 bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL, justify="left", padx=8, pady=8).pack(fill="both")
+
+        # SDO 预览区
+        sdo_right = tk.Frame(self.panel_sdo, bg=BG_MAIN)
+        sdo_right.pack(side="left", fill="both", expand=True)
+
+        sdo_preview = tk.Frame(sdo_right, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        sdo_preview.pack(fill="both", expand=True, pady=(0, 10))
+
+        self.sdo_preview = tk.Label(sdo_preview, bg=BG_CARD,
+                                    text="☀\n选择波段后点击获取最新太阳图像",
+                                    fg=FG_DIM, font=(FONT_FAMILY[0], 14))
+        self.sdo_preview.pack(fill="both", expand=True)
+
+        self.sdo_status = tk.Label(sdo_preview, bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL)
+        self.sdo_status.place(relx=0.02, rely=0.97, anchor="sw")
+
+        # SDO 底部控制
+        sdo_ctrl = tk.Frame(sdo_right, bg=BG_MAIN, height=45)
+        sdo_ctrl.pack(fill="x", side="bottom")
+        sdo_ctrl.pack_propagate(False)
+
+        self.btn_sdo_fetch = ModernButton(sdo_ctrl, text="📡 获取最新太阳图",
+                                          command=self._fetch_sdo,
+                                          width=120, height=32, bg=SDO_ACCENT, hover_bg="#ffaa33")
+        self.btn_sdo_fetch.pack(side="left", padx=(20, 2))
+
+        self.btn_sdo_auto = ModernButton(sdo_ctrl,
+                                         text="🔄 自动刷新: 开" if self.sdo_auto_refresh else "🔄 自动刷新: 关",
+                                         command=self._toggle_sdo_auto_refresh,
+                                         width=120, height=32,
+                                         bg=GREEN if self.sdo_auto_refresh else ACCENT2,
+                                         hover_bg="#6ee7c5" if self.sdo_auto_refresh else "#1a4a7a")
+        self.btn_sdo_auto.pack(side="left", padx=5)
+
+        self.sdo_countdown = tk.Label(sdo_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=(FONT_FAMILY[0], 9))
+        self.sdo_countdown.pack(side="left", padx=8)
+
+        right_sdo = tk.Frame(sdo_ctrl, bg=BG_MAIN)
+        right_sdo.pack(side="right")
+        self.btn_sdo_wp = ModernButton(right_sdo, text="🖼 设为壁纸",
+                                       command=self._set_sdo_wallpaper,
+                                       width=100, height=32, bg=ACCENT, hover_bg=ACCENT_HOVER)
+        self.btn_sdo_wp.pack(side="left", padx=2)
 
         # ---- 状态栏 ----
         self.status_bar = tk.Label(self.root, text="就绪", bg=BG_CARD, fg=FG_DIM,
@@ -349,40 +436,43 @@ class NASAApp:
         self.config["data_source"] = source
         save_config(self.config)
 
+        # 隐藏所有面板
+        for p in [self.panel_apod, self.panel_sat, self.panel_sdo]:
+            p.pack_forget()
+
+        # 停止所有计时器
+        self._stop_sat_refresh_timer()
+        self._stop_sdo_refresh_timer()
+
+        # 重置按钮样式
+        for btn in [self.btn_apod, self.btn_sat, self.btn_sdo]:
+            btn._bg = "#1a3a4a"
+            btn._hover_bg = "#0f3460"
+            btn._draw("#1a3a4a")
+
         if source == "apod":
-            self._stop_earth_refresh_timer()
-            self.panel_earth.pack_forget()
             self.panel_apod.pack(fill="both", expand=True)
             self.btn_apod._bg = ACCENT2
             self.btn_apod._hover_bg = "#1a4a7a"
             self.btn_apod._draw(ACCENT2)
-            self.btn_earth._bg = "#1a3a4a"
-            self.btn_earth._hover_bg = "#0f3460"
-            self.btn_earth._draw("#1a3a4a")
-            self._update_status("已切换到 NASA APOD 模式", color=FG_DIM)
-        else:
-            self.panel_apod.pack_forget()
-            self.panel_earth.pack(fill="both", expand=True)
-            self.btn_earth._bg = EARTH_ACCENT
-            self.btn_earth._hover_bg = "#00d4f4"
-            self.btn_earth._draw(EARTH_ACCENT)
-            self.btn_apod._bg = "#1a3a4a"
-            self.btn_apod._hover_bg = "#0f3460"
-            self.btn_apod._draw("#1a3a4a")
-            self._update_status("已切换到实时地球模式 | 2200x2200 高清拼接", color=FG_DIM)
-
-            # 自动加载 Earth 图片（如果已有缓存）
-            from config import IMAGE_CACHE_DIR
-            from earth_api import LATEST_IMAGE_FILE
-            if LATEST_IMAGE_FILE.exists():
-                self._load_earth_image(str(LATEST_IMAGE_FILE))
-                self.earth_image_path = str(LATEST_IMAGE_FILE)
-            else:
-                # 没有缓存则自动获取
-                self._fetch_earth()
-
-            # 启动自动刷新计时器
-            self._start_earth_refresh_timer()
+            self._update_status("天文图片模式 | NASA APOD 每日精选")
+        elif source == "satellite":
+            self.panel_sat.pack(fill="both", expand=True)
+            self.btn_sat._bg = SAT_ACCENT
+            self.btn_sat._hover_bg = "#00d4f4"
+            self.btn_sat._draw(SAT_ACCENT)
+            self._update_sat_info()
+            sat = self.config.get("satellite_id", "himawari")
+            self._update_status(f"卫星影像模式 | {GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)}")
+            self._start_sat_refresh_timer()
+        elif source == "sdo":
+            self.panel_sdo.pack(fill="both", expand=True)
+            self.btn_sdo._bg = SDO_ACCENT
+            self.btn_sdo._hover_bg = "#ffaa33"
+            self.btn_sdo._draw(SDO_ACCENT)
+            band = self.config.get("sdo_band", "0304")
+            self._update_status(f"太阳观测模式 | {SDO_BANDS.get(band, {}).get('name', band)}")
+            self._start_sdo_refresh_timer()
 
     # ========== APOD 数据操作 ==========
     def _rebuild_category_data(self):
@@ -457,27 +547,29 @@ class NASAApp:
             logger.error(f"Load image error: {e}")
             label.config(text="❌ 图片加载失败", fg=ACCENT)
 
-    def _load_earth_image(self, path: str):
-        """加载实时地球图片到预览区"""
+    # ====== 通用图片加载 ======
+    def _load_preview(self, path: str, label: tk.Label, status_label: tk.Label = None,
+                      source_text: str = "", extra: str = ""):
+        """通用预览图加载"""
         try:
             pil_img = Image.open(path)
             self.root.update_idletasks()
-            pw = self.earth_preview.winfo_width() or 900
-            ph = self.earth_preview.winfo_height() or 600
+            pw = label.winfo_width() or 900
+            ph = label.winfo_height() or 600
             iw, ih = pil_img.size
             ratio = min(pw / iw, ph / ih, 1.0)
             nw, nh = int(iw * ratio), int(ih * ratio)
             pil_img = pil_img.resize((nw, nh), Image.LANCZOS)
-            self._earth_photo = ImageTk.PhotoImage(pil_img)
-            self.earth_preview.config(image=self._earth_photo, text="")
-
-            now = datetime.now()
-            self.earth_status.config(
-                text=f"🛰 Himawari-8 地球全盘图 | 获取时间: {now.strftime('%Y-%m-%d %H:%M')} | "
-                     f"分辨率: {pil_img.width}x{pil_img.height}")
+            self._prev_photo = ImageTk.PhotoImage(pil_img)
+            label.config(image=self._prev_photo, text="")
+            if status_label:
+                now = datetime.now()
+                status_label.config(
+                    text=f"{source_text} | {now.strftime('%Y-%m-%d %H:%M')} | "
+                         f"{iw}x{ih} {extra}")
         except Exception as e:
-            logger.error(f"Load earth image error: {e}")
-            self.earth_preview.config(text="❌ 加载失败", fg=ACCENT)
+            logger.error(f"Load preview error: {e}")
+            label.config(text="❌ 加载失败", fg=ACCENT)
 
     def _download_and_show(self, img: ApodImage):
         path = download_image(img, hd=self.config.get("hd", True))
@@ -581,50 +673,282 @@ class NASAApp:
         except Exception as e:
             self.root.after(0, lambda: self._update_status(f"❌ 更新失败: {e}", color=ACCENT))
 
-    # ========== 实时地球事件 ==========
-    def _fetch_earth(self):
-        self._update_status("⏳ 正在获取最新地球卫星图...", color=YELLOW)
-        self.earth_preview.config(text="⏳\n正在从 Himawari-8 卫星获取图片...", fg=FG_DIM)
-        threading.Thread(target=self._do_fetch_earth, daemon=True).start()
+    # ========== 卫星影像事件 ==========
+    def _update_sat_info(self):
+        """更新卫星信息卡片"""
+        sat = self.selected_satellite.get()
+        info = GEOSTATIONARY_SATELLITES.get(sat, {})
+        self.sat_info_label.config(
+            text=f"卫星: {info.get('name', sat)}\n\n"
+                 f"数据源\n━━━━━━━━━━\nCIRA RAMMB-Slider\n\n"
+                 f"区域\n━━━━━━━━━━\n{info.get('region', '-')}\n\n"
+                 f"更新频率\n━━━━━━━━━━\n约每 10 分钟\n\n"
+                 f"颜色模式\n━━━━━━━━━━\n自然色/地球色"
+        )
 
-    def _do_fetch_earth(self):
+    def _fetch_satellite(self):
+        sat = self.selected_satellite.get()
+        color = self.selected_color.get()
+        size = int(self.sat_size_var.get())
+        name = GEOSTATIONARY_SATELLITES.get(sat, {}).get("name", sat)
+        self.config["satellite_id"] = sat
+        self.config["satellite_color"] = color
+        save_config(self.config)
+        self._update_status(f"⏳ 正在获取 {name} 卫星影像...", color=YELLOW)
+        self.sat_preview.config(text="⏳\n正在获取卫星影像...", fg=FG_DIM)
+        self._update_sat_info()
+        threading.Thread(target=self._do_fetch_sat, args=(sat, color, size), daemon=True).start()
+
+    def _do_fetch_sat(self, sat: str, color: str, size: int):
         try:
-            from earth_api import fetch_earth_image
-            path = fetch_earth_image(resolution=2200)
+            path = fetch_satellite_image(satellite=sat, color=color, target_size=size)
             if path:
-                self.earth_image_path = path
-                self.root.after(0, lambda: self._load_earth_image(path))
+                self.sat_image_path = path
+                self.root.after(0, lambda: self._load_preview(path, self.sat_preview, self.sat_status,
+                    f"🛰 {GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)}"))
                 self.root.after(0, lambda: self._update_status(
-                    "地球卫星图已更新 2200x2200 | 可点击「设为壁纸」", color=GREEN))
+                    f"卫星影像已更新 | {GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)}",
+                    color=GREEN))
             else:
-                self.root.after(0, lambda: self.earth_preview.config(
-                    text="❌ 获取失败\n\nHimawari-8 数据暂时不可用\n请稍后重试", fg=ACCENT))
-                self.root.after(0, lambda: self._update_status(
-                    "❌ 获取失败，请稍后重试", color=ACCENT))
+                self.root.after(0, lambda: self.sat_preview.config(
+                    text="❌ 获取失败\n数据暂时不可用，请稍后重试", fg=ACCENT))
+                self.root.after(0, lambda: self._update_status("❌ 获取失败", color=ACCENT))
         except Exception as e:
-            logger.error(f"Earth fetch error: {e}")
-            self.root.after(0, lambda: self.earth_preview.config(
-                text=f"❌ 失败: {str(e)[:60]}", fg=ACCENT))
-            self.root.after(0, lambda: self._update_status(f"❌ 获取失败: {e}", color=ACCENT))
+            logger.error(f"Sat fetch error: {e}")
+            self.root.after(0, lambda: self.sat_preview.config(text=f"❌ {str(e)[:60]}", fg=ACCENT))
+            self.root.after(0, lambda: self._update_status(f"❌ {e}", color=ACCENT))
 
-    def _set_earth_wallpaper(self):
-        if not self.earth_image_path or not Path(self.earth_image_path).exists():
-            messagebox.showwarning("提示", "请先获取最新地球图片")
+    def _set_sat_wallpaper(self):
+        if not self.sat_image_path or not Path(self.sat_image_path).exists():
+            messagebox.showwarning("提示", "请先获取卫星影像")
             return
+        sat = self.config.get("satellite_id", "himawari")
+        name = GEOSTATIONARY_SATELLITES.get(sat, {}).get("name", sat)
         style = self.config.get("wallpaper_style", "fill")
         now = datetime.now()
         wp_path = watermark_image(
-            self.earth_image_path,
-            left_text="来源: Himawari-8 气象卫星",
+            self.sat_image_path,
+            left_text=f"来源: {name}",
             right_text=f"拍摄时间: {now.strftime('%Y-%m-%d %H:%M')} (UTC+8)",
-            output_key="earth_live",
+            output_key=f"sat_{sat}",
         )
-        if set_wallpaper(wp_path, "earth_live", style=style):
-            self._update_status(
-                f"实时地球壁纸已设置 | {now.strftime('%H:%M')} | 后台持续自动更新",
-                color=GREEN)
+        if set_wallpaper(wp_path, f"sat_{sat}", style=style):
+            self._update_status(f"壁纸已设置 | {name} | 后台持续自动更新", color=GREEN)
         else:
             messagebox.showerror("错误", "壁纸设置失败")
+
+    # ========== SDO 太阳事件 ==========
+    def _fetch_sdo(self):
+        band = self.selected_sdo_band.get()
+        name = SDO_BANDS.get(band, {}).get("name", band)
+        self.config["sdo_band"] = band
+        save_config(self.config)
+        self._update_status(f"⏳ 正在获取 {name} 太阳图像...", color=YELLOW)
+        self.sdo_preview.config(text="⏳\n正在获取太阳图像...", fg=FG_DIM)
+        threading.Thread(target=self._do_fetch_sdo, args=(band,), daemon=True).start()
+
+    def _do_fetch_sdo(self, band: str):
+        try:
+            path = fetch_sdo_image(band=band)
+            if path:
+                self.sdo_image_path = path
+                name = SDO_BANDS.get(band, {}).get("name", band)
+                self.root.after(0, lambda: self._load_preview(path, self.sdo_preview,
+                    self.sdo_status, f"☀ {name}", "NASA SDO"))
+                self.root.after(0, lambda: self._update_status(
+                    f"太阳图像已更新 | {name}", color=GREEN))
+            else:
+                self.root.after(0, lambda: self.sdo_preview.config(
+                    text="❌ 获取失败\nNASA SDO 数据暂时不可用", fg=ACCENT))
+                self.root.after(0, lambda: self._update_status("❌ 获取失败", color=ACCENT))
+        except Exception as e:
+            logger.error(f"SDO fetch error: {e}")
+            self.root.after(0, lambda: self.sdo_preview.config(text=f"❌ {str(e)[:60]}", fg=ACCENT))
+            self.root.after(0, lambda: self._update_status(f"❌ {e}", color=ACCENT))
+
+    def _set_sdo_wallpaper(self):
+        if not self.sdo_image_path or not Path(self.sdo_image_path).exists():
+            messagebox.showwarning("提示", "请先获取太阳图像")
+            return
+        band = self.config.get("sdo_band", "0304")
+        name = SDO_BANDS.get(band, {}).get("name", band)
+        style = self.config.get("wallpaper_style", "fill")
+        now = datetime.now()
+        wp_path = watermark_image(
+            self.sdo_image_path,
+            left_text=f"来源: NASA SDO 太阳观测",
+            right_text=f"波段: {name} | {now.strftime('%Y-%m-%d %H:%M')}",
+            output_key=f"sdo_{band}",
+        )
+        if set_wallpaper(wp_path, f"sdo_{band}", style=style):
+            self._update_status(f"壁纸已设置 | {name}", color=GREEN)
+        else:
+            messagebox.showerror("错误", "壁纸设置失败")
+
+    # ========== 卫星自动刷新 ==========
+    def _toggle_sat_auto_refresh(self):
+        self.sat_auto_refresh = not self.sat_auto_refresh
+        self.config["satellite_auto_refresh"] = self.sat_auto_refresh
+        save_config(self.config)
+        if self.sat_auto_refresh:
+            self.btn_sat_auto._bg = GREEN
+            self.btn_sat_auto._hover_bg = "#6ee7c5"
+            self.btn_sat_auto._text = "🔄 自动刷新: 开"
+            self.btn_sat_auto._draw(GREEN)
+            self._start_sat_refresh_timer()
+            self._update_status("卫星自动刷新已开启", color=GREEN)
+        else:
+            self.btn_sat_auto._bg = ACCENT2
+            self.btn_sat_auto._hover_bg = "#1a4a7a"
+            self.btn_sat_auto._text = "🔄 自动刷新: 关"
+            self.btn_sat_auto._draw(ACCENT2)
+            self._stop_sat_refresh_timer()
+            self._update_status("卫星自动刷新已关闭")
+
+    def _start_sat_refresh_timer(self):
+        if not self.sat_auto_refresh:
+            return
+        if self._sat_timer_id:
+            self.root.after_cancel(self._sat_timer_id)
+        self._sat_next_refresh = datetime.now() + timedelta(minutes=self.sat_refresh_interval)
+        self._update_sat_countdown()
+        self._sat_timer_id = self.root.after(1000, self._sat_tick)
+
+    def _stop_sat_refresh_timer(self):
+        if self._sat_timer_id:
+            self.root.after_cancel(self._sat_timer_id)
+            self._sat_timer_id = None
+        self._sat_next_refresh = None
+        self.sat_countdown.config(text="")
+
+    def _sat_tick(self):
+        if not self.sat_auto_refresh:
+            return
+        now = datetime.now()
+        if self._sat_next_refresh and (self._sat_next_refresh - now).total_seconds() <= 0:
+            self._sat_next_refresh = now + timedelta(minutes=self.sat_refresh_interval)
+            self.sat_countdown.config(text="⏳ 刷新中...")
+            sat = self.config.get("satellite_id", "himawari")
+            color = self.config.get("satellite_color", "natural_color")
+            size = self.config.get("satellite_size", 1080)
+            threading.Thread(target=self._do_sat_auto_refresh, args=(sat, color, size), daemon=True).start()
+        else:
+            self._update_sat_countdown()
+        self._sat_timer_id = self.root.after(1000, self._sat_tick)
+
+    def _update_sat_countdown(self):
+        if not self._sat_next_refresh:
+            return
+        remaining = max(0, (self._sat_next_refresh - datetime.now()).total_seconds())
+        m, s = int(remaining // 60), int(remaining % 60)
+        self.sat_countdown.config(text=f"⏱ {m:02d}:{s:02d}", fg=FG_DIM if m > 1 else YELLOW)
+
+    def _do_sat_auto_refresh(self, sat: str, color: str, size: int):
+        try:
+            path = fetch_satellite_image(satellite=sat, color=color, target_size=size)
+            if not path:
+                return
+            old = self.sat_image_path
+            self.sat_image_path = path
+            self.root.after(0, lambda: self._load_preview(path, self.sat_preview, self.sat_status,
+                f"🛰 {GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)}"))
+            if self.data_source == "satellite":
+                style = self.config.get("wallpaper_style", "fill")
+                now = datetime.now()
+                name = GEOSTATIONARY_SATELLITES.get(sat, {}).get("name", sat)
+                wp_path = watermark_image(path,
+                    left_text=f"来源: {name}",
+                    right_text=f"拍摄时间: {now.strftime('%Y-%m-%d %H:%M')} (UTC+8)",
+                    output_key=f"sat_{sat}")
+                set_wallpaper(wp_path, f"sat_{sat}", style=style)
+                self.root.after(0, lambda: self._update_status(
+                    f"🛰 自动刷新 | {now.strftime('%H:%M')} | 壁纸同步更新", color=GREEN))
+            else:
+                self.root.after(0, lambda: self._update_status("🛰 卫星影像已自动刷新", color=GREEN))
+        except Exception as e:
+            logger.error(f"Sat auto-refresh error: {e}")
+
+    # ========== SDO 自动刷新 ==========
+    def _toggle_sdo_auto_refresh(self):
+        self.sdo_auto_refresh = not self.sdo_auto_refresh
+        self.config["sdo_auto_refresh"] = self.sdo_auto_refresh
+        save_config(self.config)
+        if self.sdo_auto_refresh:
+            self.btn_sdo_auto._bg = GREEN
+            self.btn_sdo_auto._hover_bg = "#6ee7c5"
+            self.btn_sdo_auto._text = "🔄 自动刷新: 开"
+            self.btn_sdo_auto._draw(GREEN)
+            self._start_sdo_refresh_timer()
+            self._update_status("SDO 自动刷新已开启", color=GREEN)
+        else:
+            self.btn_sdo_auto._bg = ACCENT2
+            self.btn_sdo_auto._hover_bg = "#1a4a7a"
+            self.btn_sdo_auto._text = "🔄 自动刷新: 关"
+            self.btn_sdo_auto._draw(ACCENT2)
+            self._stop_sdo_refresh_timer()
+            self._update_status("SDO 自动刷新已关闭")
+
+    def _start_sdo_refresh_timer(self):
+        if not self.sdo_auto_refresh:
+            return
+        if self._sdo_timer_id:
+            self.root.after_cancel(self._sdo_timer_id)
+        self._sdo_next_refresh = datetime.now() + timedelta(minutes=self.sdo_refresh_interval)
+        self._update_sdo_countdown()
+        self._sdo_timer_id = self.root.after(1000, self._sdo_tick)
+
+    def _stop_sdo_refresh_timer(self):
+        if self._sdo_timer_id:
+            self.root.after_cancel(self._sdo_timer_id)
+            self._sdo_timer_id = None
+        self._sdo_next_refresh = None
+        self.sdo_countdown.config(text="")
+
+    def _sdo_tick(self):
+        if not self.sdo_auto_refresh:
+            return
+        now = datetime.now()
+        remaining = max(0, (self._sdo_next_refresh - now).total_seconds())
+        if remaining <= 0:
+            self._sdo_next_refresh = now + timedelta(minutes=self.sdo_refresh_interval)
+            self.sdo_countdown.config(text="⏳ 刷新中...")
+            band = self.config.get("sdo_band", "0304")
+            threading.Thread(target=self._do_sdo_auto_refresh, args=(band,), daemon=True).start()
+        else:
+            self._update_sdo_countdown()
+        self._sdo_timer_id = self.root.after(1000, self._sdo_tick)
+
+    def _update_sdo_countdown(self):
+        if not self._sdo_next_refresh:
+            return
+        remaining = max(0, (self._sdo_next_refresh - datetime.now()).total_seconds())
+        m, s = int(remaining // 60), int(remaining % 60)
+        self.sdo_countdown.config(text=f"⏱ {m:02d}:{s:02d}", fg=FG_DIM if m > 1 else YELLOW)
+
+    def _do_sdo_auto_refresh(self, band: str):
+        try:
+            path = fetch_sdo_image(band=band)
+            if not path:
+                return
+            self.sdo_image_path = path
+            name = SDO_BANDS.get(band, {}).get("name", band)
+            self.root.after(0, lambda: self._load_preview(path, self.sdo_preview,
+                self.sdo_status, f"☀ {name}", "NASA SDO"))
+            if self.data_source == "sdo":
+                style = self.config.get("wallpaper_style", "fill")
+                now = datetime.now()
+                wp_path = watermark_image(path,
+                    left_text="来源: NASA SDO 太阳观测",
+                    right_text=f"波段: {name} | {now.strftime('%Y-%m-%d %H:%M')}",
+                    output_key=f"sdo_{band}")
+                set_wallpaper(wp_path, f"sdo_{band}", style=style)
+                self.root.after(0, lambda: self._update_status(
+                    f"☀ SDO 自动刷新 | {now.strftime('%H:%M')} | 壁纸同步更新", color=GREEN))
+            else:
+                self.root.after(0, lambda: self._update_status("☀ SDO 已自动刷新", color=GREEN))
+        except Exception as e:
+            logger.error(f"SDO auto-refresh error: {e}")
+
     def _show_settings(self):
         win = tk.Toplevel(self.root)
         win.title("设置")
@@ -704,43 +1028,47 @@ class NASAApp:
         tk.Label(win, text="📖 使用说明", bg=BG_MAIN, fg="white",
                  font=FONT_TITLE).pack(pady=12)
 
-        help_text = """欢迎使用 NASA 卫星壁纸！
+        help_text = """Live Earth Wallpaper - 卫星壁纸
 
-【双数据源模式】
+【三大数据源模式】
 点击顶部的标签切换数据源：
 
-🔭 NASA APOD — 天文每日图片
+🔭 天文图片 — NASA APOD 每日精选
 • 首次启动自动获取近 10 天图片
 • 左侧选择分类浏览：星云、星系、行星等 10 个类别
 • 点击图片设为壁纸，支持导航浏览
 • 每天在设定时间自动更新
 
-🌍 实时地球 — Himawari-8 卫星
-• 日本气象卫星 Himawari-8 每 10 分钟拍摄一张
-  地球全盘图
-• 默认 2200x2200 高清分辨率（16瓦片拼接）
-• 点击「获取最新图片」下载当前卫星图
-• 开启「自动刷新」每 10 分钟自动获取 + 更新
-• 设为壁纸后，自动刷新同步跟新壁纸
-• 数据延迟约 20-30 分钟
+🛰 卫星影像 — 多卫星实时影像
+• 支持 6 颗地球静止卫星：
+  GOES-16/18 (美洲)、Himawari-8 (亚太)、
+  GK2A (韩国)、Meteosat (欧洲/非洲/印度洋)
+• 颜色模式：自然色 / 地球色 (含夜景)
+• 分辨率：标准 / 高清 / 超清
+• 基于 CIRA RAMMB-Slider 数据
+• 开启自动刷新，每 10 分钟自动更新
+
+☀ 太阳观测 — NASA SDO 太阳图像
+• 多个观测波段：
+  304 Å (色球层)、171 Å (日冕)、
+  连续光球 (太阳黑子)、带磁场线叠加
+• 数据来源：NASA 太阳动力学天文台
+• 约每 15-60 分钟更新一张
 
 【壁纸样式】
 在「设置」中选择：居中 / 平铺 / 拉伸 / 适应 / 填充
 
 【NASA API Key】
 默认使用 DEMO_KEY（每小时限流 30 次）。
-建议访问 https://api.nasa.gov/ 申请免费 Key，
-在「设置」中填入，获得每小时 1000 次额度。
+建议访问 https://api.nasa.gov/ 申请免费 Key。
 
 【数据存储】
 配置和缓存在 %USERPROFILE%\\.nasa_wallpaper\\ 目录
 
 【关闭与后台运行】
-• 点击右上角 X 关闭窗口时，可选择：
-  -「最小化到任务栏」：隐藏到任务栏，后台持续更新壁纸
-  -「退出程序」：停止所有更新并退出
-• 最小化后从任务栏点击图标即可恢复窗口
-• 壁纸来源和拍摄时间会标注在壁纸右下角
+• 点击右上角 X 可选择「最小化到任务栏」或「退出」
+• 最小化后后台持续更新壁纸
+• 壁纸右上角标注来源和拍摄时间
 """
 
         text = tk.Text(win, bg=BG_INPUT, fg=FG_TEXT, font=FONT_BODY,
@@ -794,115 +1122,6 @@ class NASAApp:
         self._refresh_ui()
         self._update_status(f"已自动获取 {count} 张 NASA 图片，选一个分类设为壁纸吧", color=GREEN)
 
-    # ========== 地球自动刷新 ==========
-    def _toggle_earth_auto_refresh(self):
-        """切换自动刷新开关"""
-        self.earth_auto_refresh = not self.earth_auto_refresh
-        self.config["earth_auto_refresh"] = self.earth_auto_refresh
-        save_config(self.config)
-
-        if self.earth_auto_refresh:
-            self.btn_auto_refresh._bg = GREEN
-            self.btn_auto_refresh._hover_bg = "#6ee7c5"
-            self.btn_auto_refresh._text = "🔄 自动刷新: 开"
-            self.btn_auto_refresh._draw(GREEN)
-            self._start_earth_refresh_timer()
-            self._update_status("自动刷新已开启 | 每10分钟获取最新地球图", color=GREEN)
-        else:
-            self.btn_auto_refresh._bg = ACCENT2
-            self.btn_auto_refresh._hover_bg = "#1a4a7a"
-            self.btn_auto_refresh._text = "🔄 自动刷新: 关"
-            self.btn_auto_refresh._draw(ACCENT2)
-            self._stop_earth_refresh_timer()
-            self._update_status("自动刷新已关闭")
-
-    def _start_earth_refresh_timer(self):
-        """启动地球自动刷新计时器"""
-        if not self.earth_auto_refresh:
-            return
-        if self._earth_timer_id:
-            self.root.after_cancel(self._earth_timer_id)
-
-        # 设置下次刷新时间
-        from datetime import datetime, timedelta
-        self._earth_next_refresh = datetime.now() + timedelta(minutes=self.earth_refresh_interval)
-        self._update_earth_countdown()
-
-        # 定时秒级更新倒计时显示
-        self._earth_timer_id = self.root.after(1000, self._earth_tick)
-
-    def _stop_earth_refresh_timer(self):
-        """停止地球自动刷新计时器"""
-        if self._earth_timer_id:
-            self.root.after_cancel(self._earth_timer_id)
-            self._earth_timer_id = None
-        self._earth_next_refresh = None
-        self.earth_countdown.config(text="")
-
-    def _earth_tick(self):
-        """计时器每秒触发"""
-        if not self.earth_auto_refresh:
-            return
-
-        now = datetime.now()
-        if self._earth_next_refresh:
-            remaining = (self._earth_next_refresh - now).total_seconds()
-            if remaining <= 0:
-                # 时间到，执行刷新
-                self._earth_next_refresh = now + timedelta(minutes=self.earth_refresh_interval)
-                self.earth_countdown.config(text="⏳ 刷新中...")
-                threading.Thread(target=self._do_earth_auto_refresh, daemon=True).start()
-            else:
-                self._update_earth_countdown()
-
-        # 每秒更新倒计时
-        self._earth_timer_id = self.root.after(1000, self._earth_tick)
-
-    def _update_earth_countdown(self):
-        """更新倒计时显示"""
-        if not self._earth_next_refresh:
-            return
-        remaining = max(0, (self._earth_next_refresh - datetime.now()).total_seconds())
-        minutes = int(remaining // 60)
-        seconds = int(remaining % 60)
-        self.earth_countdown.config(
-            text=f"⏱ 下次更新: {minutes:02d}:{seconds:02d}",
-            fg=FG_DIM if minutes > 1 else YELLOW,
-        )
-
-    def _do_earth_auto_refresh(self):
-        """后台自动刷新地球图"""
-        try:
-            from earth_api import fetch_earth_image
-            path = fetch_earth_image(resolution=2200)
-            if path:
-                old_path = self.earth_image_path
-                self.earth_image_path = path
-                self.root.after(0, lambda: self._load_earth_image(path))
-
-                # 如果当前数据源是 earth 且设了壁纸，同步更新壁纸
-                if self.data_source == "earth":
-                    style = self.config.get("wallpaper_style", "fill")
-                    now = datetime.now()
-                    wp_path = watermark_image(
-                        path,
-                        left_text="来源: Himawari-8 气象卫星",
-                        right_text=f"拍摄时间: {now.strftime('%Y-%m-%d %H:%M')} (UTC+8)",
-                        output_key="earth_live",
-                    )
-                    set_wallpaper(wp_path, "earth_live", style=style)
-                    self.root.after(0, lambda: self._update_status(
-                        f"🛰 已自动刷新 | {now.strftime('%H:%M')} | 壁纸同步更新",
-                        color=GREEN))
-                else:
-                    self.root.after(0, lambda: self._update_status(
-                        "🛰 地球图已自动刷新", color=GREEN))
-            else:
-                self.root.after(0, lambda: self._update_status(
-                    "⚠ 自动刷新失败，下次重试", color=ACCENT))
-        except Exception as e:
-            logger.error(f"Earth auto-refresh error: {e}")
-
     def _check_auto_startup(self):
         if not self.metadata.get("images"):
             self._auto_fetch_on_startup()
@@ -927,7 +1146,7 @@ class NASAApp:
         rx, ry = self.root.winfo_x(), self.root.winfo_y()
         dialog.geometry(f"+{rx + (rw - dw) // 2}+{ry + (rh - dh) // 2}")
 
-        tk.Label(dialog, text="NASA 卫星壁纸", bg=BG_MAIN, fg="white",
+        tk.Label(dialog, text="Live Earth Wallpaper", bg=BG_MAIN, fg="white",
                  font=FONT_TITLE).pack(pady=(18, 4))
         tk.Label(dialog, text="请选择关闭方式", bg=BG_MAIN, fg=FG_DIM,
                  font=FONT_BODY).pack(pady=(0, 12))
