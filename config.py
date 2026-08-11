@@ -1,0 +1,153 @@
+"""配置管理模块"""
+import json
+import os
+from pathlib import Path
+
+APP_DIR = Path.home() / ".nasa_wallpaper"
+CONFIG_FILE = APP_DIR / "config.json"
+IMAGE_CACHE_DIR = APP_DIR / "cache"
+WALLPAPER_DIR = APP_DIR / "wallpaper"
+
+APOD_API_URL = "https://api.nasa.gov/planetary/apod"
+DEFAULT_API_KEY = "DEMO_KEY"
+
+DEFAULT_CONFIG = {
+    "api_key": DEFAULT_API_KEY,
+    "selected_category": "all",
+    "auto_update": True,
+    "update_time": "09:00",
+    "last_update": None,
+    "hd": True,
+    "data_source": "apod",          # "apod" | "earth"
+    "earth_resolution": 2200,       # Himawari-8 分辨率: 550 | 1100 | 2200 | 4400
+    "earth_auto_refresh": True,     # 地球自动刷新
+    "earth_refresh_interval": 10,   # 地球刷新间隔（分钟）
+    "wallpaper_style": "fill",      # 壁纸样式: center | tile | stretch | fit | fill
+}
+
+# 壁纸样式映射（注册表值）
+WALLPAPER_STYLES = {
+    "center":  {"WallpaperStyle": "0", "TileWallpaper": "0"},
+    "tile":    {"WallpaperStyle": "0", "TileWallpaper": "1"},
+    "stretch": {"WallpaperStyle": "2", "TileWallpaper": "0"},
+    "fit":     {"WallpaperStyle": "6", "TileWallpaper": "0"},
+    "fill":    {"WallpaperStyle": "10", "TileWallpaper": "0"},
+}
+
+CATEGORIES = {
+    "nebula": {
+        "name": "星云",
+        "keywords": ["nebula", "nebulae", "ngc", "ic ", "messa", "supernova remnant",
+                      "emission", "reflection nebula", "planetary nebula", "dark nebula"],
+    },
+    "galaxy": {
+        "name": "星系",
+        "keywords": ["galaxy", "galaxies", "spiral", "andromeda", "milky way",
+                      "magellanic", "cluster of galaxies", "dwarf galaxy"],
+    },
+    "planet": {
+        "name": "行星",
+        "keywords": ["jupiter", "saturn", "mars", "venus", "mercury",
+                      "neptune", "uranus", "pluto", "planet", "gas giant"],
+    },
+    "earth": {
+        "name": "地球",
+        "keywords": ["earth", "blue marble", "dscovr", "epic", "aurora",
+                      "hurricane", "cloud", "ocean", "atmosphere", "terra", "aqua"],
+    },
+    "sun": {
+        "name": "太阳",
+        "keywords": ["sun", "solar", "corona", "sunspot", "solar flare",
+                      "eclipse", "helio", "sdo"],
+    },
+    "moon": {
+        "name": "月球",
+        "keywords": ["moon", "lunar", "crescent", "full moon", "eclipse moon",
+                      "moonrise", "moonset"],
+    },
+    "aurora": {
+        "name": "极光",
+        "keywords": ["aurora", "northern lights", "southern lights",
+                      "aurora borealis", "aurora australis"],
+    },
+    "comet": {
+        "name": "彗星与小天体",
+        "keywords": ["comet", "asteroid", "meteor", "shooting star",
+                      "leonid", "perseid", "geminid", "fireball"],
+    },
+    "stars": {
+        "name": "恒星与星团",
+        "keywords": ["star cluster", "globular", "open cluster",
+                      "pleiades", "binary star", "white dwarf", "neutron star",
+                      "constellation", "star trail"],
+    },
+    "iss": {
+        "name": "空间站与航天器",
+        "keywords": ["iss", "space station", "shuttle", "apollo",
+                      "astronaut", "spacewalk", "rocket", "launch",
+                      "telescope", "hubble", "jwst", "james webb"],
+    },
+    "live_earth": {
+        "name": "实时地球",
+        "keywords": ["__himawari__"],  # 内部标记，不参与关键词匹配
+    },
+}
+
+ALL_CATEGORY = "all"
+
+
+def ensure_dirs():
+    APP_DIR.mkdir(parents=True, exist_ok=True)
+    IMAGE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    WALLPAPER_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def load_config() -> dict:
+    ensure_dirs()
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                config = json.load(f)
+            merged = {**DEFAULT_CONFIG, **config}
+            return merged
+        except (json.JSONDecodeError, IOError):
+            pass
+    save_config(DEFAULT_CONFIG)
+    return DEFAULT_CONFIG.copy()
+
+
+def save_config(config: dict):
+    ensure_dirs()
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+
+
+def get_image_cache_path(date_str: str, hd: bool = False) -> Path:
+    ext = ".jpg"
+    suffix = "_hd" if hd else ""
+    return IMAGE_CACHE_DIR / f"{date_str}{suffix}{ext}"
+
+
+def get_wallpaper_path(date_str: str) -> Path:
+    return WALLPAPER_DIR / f"wallpaper_{date_str}.jpg"
+
+
+def get_metadata_path() -> Path:
+    return APP_DIR / "metadata.json"
+
+
+def load_metadata() -> dict:
+    path = get_metadata_path()
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return {"images": {}}
+
+
+def save_metadata(metadata: dict):
+    path = get_metadata_path()
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
