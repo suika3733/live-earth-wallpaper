@@ -1426,6 +1426,30 @@ body:not(.pywebview) .window-controls {
   </div>
 </div>
 
+<!-- Exit confirm modal -->
+<div class="modal-overlay" id="exitModal" style="display:none;">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <div class="modal-title">退出</div>
+      <button class="modal-close" id="closeExitModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 var(--space-4); color: var(--text-secondary);">选择退出方式：</p>
+      <div style="display:flex; flex-direction:column; gap: var(--space-3);">
+        <button class="btn btn-accent" id="exitToTray" style="width:100%;">
+          最小化到后台（托盘运行）
+        </button>
+        <button class="btn btn-danger" id="exitQuit" style="width:100%;">
+          关闭软件
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="closeExitBtn">取消</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 /* ============================================================
@@ -1879,7 +1903,24 @@ function initWindowControls() {
   }
   if (btnClose) {
     btnClose.addEventListener('click', () => {
+      // 弹出退出选择：最小化到后台 / 关闭软件
+      const exitModal = document.getElementById('exitModal');
+      if (exitModal) exitModal.style.display = 'flex';
+    });
+  }
+
+  // ---- Exit confirm modal ----
+  const exitModal = document.getElementById('exitModal');
+  if (exitModal) {
+    const closeExit = () => { exitModal.style.display = 'none'; };
+    document.getElementById('closeExitModal')?.addEventListener('click', closeExit);
+    document.getElementById('closeExitBtn')?.addEventListener('click', closeExit);
+    document.getElementById('exitToTray')?.addEventListener('click', () => {
+      closeExit();
       if (window.pywebview.api.hide) window.pywebview.api.hide();
+    });
+    document.getElementById('exitQuit')?.addEventListener('click', () => {
+      if (window.pywebview.api.quit_app) window.pywebview.api.quit_app();
     });
   }
 }
