@@ -7,6 +7,9 @@
 import datetime
 import json
 import logging
+import socket
+import ssl
+import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -16,6 +19,15 @@ from PIL import Image
 from config import IMAGE_CACHE_DIR
 
 logger = logging.getLogger(__name__)
+
+# 全局 SSL 上下文（兼容部分 Windows 环境）
+try:
+    _SSL_CTX = ssl.create_default_context()
+except Exception:
+    _SSL_CTX = ssl._create_unverified_context()
+
+# 网络请求超时（秒）
+_TIMEOUT = 15
 
 # ---------------------------------------------------------------------------
 # 卫星元数据
@@ -45,13 +57,31 @@ SATELLITE_CACHE_DIR = IMAGE_CACHE_DIR / "satellite"
 
 
 def _get_time_code(satellite: str, color: str) -> tuple[int, str]:
-    """获取最新可用时间戳"""
+    """获取最新可用时间戳（带超时和重试）"""
     url = f"{RAMMB_BASE}/data/json/{satellite}/full_disk/{color}/latest_times.json"
-    with urllib.request.urlopen(url) as f:
-        data = json.load(f)
-    latest = data["timestamps_int"][0]
-    date = datetime.datetime.strptime(str(latest), "%Y%m%d%H%M%S").strftime("%Y/%m/%d")
-    return latest, date
+    last_err = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "Accept": "application/json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=_TIMEOUT, context=_SSL_CTX) as f:
+                data = json.load(f)
+            latest = data["timestamps_int"][0]
+            date = datetime.datetime.strptime(str(latest), "%Y%m%d%H%M%S").strftime("%Y/%m/%d")
+            return latest, date
+        except (urllib.error.URLError, socket.timeout, TimeoutError) as e:
+            last_err = e
+            logger.warning(f"Time code fetch attempt {attempt + 1}/3 failed: {e}")
+            time.sleep(1.5)
+    raise ConnectionError(
+        f"无法连接到 CIRA RAMMB-Slider 服务器 ({last_err}). "
+        f"请检查网络连接，该服务可能需要代理/VPN 访问。"
+    )
 
 
 def _calc_scale(satellite: str, target_size: int) -> int:
@@ -72,10 +102,32 @@ def _build_url(satellite: str, scale: int, color: str) -> str:
 
 
 def _download_tile(url: str) -> Image.Image:
-    """下载单个瓦片"""
+    """下载单个瓦片（带超时和重试）"""
     import requests
-    resp = requests.get(url, timeout=30)
-    resp.raise_for_status()
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    session = requests.Session()
+    retry = Retry(total=2, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "image/png,image/*,*/*",
+    }
+
+    try:
+        resp = session.get(url, headers=headers, timeout=_TIMEOUT, verify=True)
+        resp.raise_for_status()
+    except requests.exceptions.ConnectTimeout:
+        raise ConnectionError(
+            "连接 CIRA 服务器超时。请检查网络，该服务位于美国，可能需要代理/VPN。"
+        )
+    except requests.exceptions.ConnectionError as e:
+        raise ConnectionError(
+            f"无法连接到 CIRA 服务器: {e}. 请检查网络连接。"
+        )
+
     from io import BytesIO
     return Image.open(BytesIO(resp.content))
 
@@ -105,8 +157,11 @@ def fetch_satellite_image(
         logger.error(f"Unknown color mode: {color}")
         return None
 
-    scale = _calc_scale(satellite, target_size)
-    base_url, time_code = _build_url(satellite, scale, color)
+    try:
+        scale = _calc_scale(satellite, target_size)
+        base_url, time_code = _build_url(satellite, scale, color)
+    except ConnectionError:
+        raise  # 向上传递网络错误，让 GUI 显示友好提示
 
     # 缓存路径
     SATELLITE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -143,7 +198,10 @@ def fetch_satellite_image(
 
     if not tile_map:
         logger.error("All tile downloads failed")
-        return None
+        raise ConnectionError(
+            "所有卫星瓦片下载失败。请检查网络连接，"
+            "CIRA RAMMB-Slider 服务位于美国，国内访问可能需要代理/VPN。"
+        )
 
     # 拼接瓦片
     full_w = tilesize * tiles_n

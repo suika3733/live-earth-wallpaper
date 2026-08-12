@@ -32,6 +32,7 @@ DEFAULT_CONFIG = {
     "earth_auto_refresh": True,         # [兼容]
     "earth_refresh_interval": 10,       # [兼容]
     "wallpaper_style": "fill",
+    "autostart": False,                # 开机自启动
 }
 
 # 壁纸样式映射（注册表值）

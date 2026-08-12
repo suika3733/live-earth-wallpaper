@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 from PIL import Image, ImageTk
+import pystray
 
 from config import (
     load_config, save_config, load_metadata, save_metadata,
@@ -17,6 +18,7 @@ from categorizer import categorize_image, get_category_name, get_all_category_ke
 from wallpaper import set_wallpaper, watermark_image
 from scheduler import start_scheduler, stop_scheduler, is_scheduler_running, check_and_update
 from providers import GEOSTATIONARY_SATELLITES, SDO_BANDS, fetch_satellite_image, fetch_sdo_image
+from autostart import is_autostart_enabled, set_autostart
 
 logging.basicConfig(
     level=logging.INFO,
@@ -126,6 +128,9 @@ class NASAApp:
 
         # 拦截关闭按钮
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        # 系统托盘
+        self.tray_icon = None
 
         self._build_ui()
         self._rebuild_category_data()
@@ -952,7 +957,7 @@ class NASAApp:
     def _show_settings(self):
         win = tk.Toplevel(self.root)
         win.title("设置")
-        win.geometry("420x420")
+        win.geometry("420x480")
         win.configure(bg=BG_MAIN)
         win.resizable(False, False)
         win.transient(self.root)
@@ -1003,11 +1008,36 @@ class NASAApp:
                        activebackground=BG_MAIN, activeforeground=FG_TEXT,
                        font=FONT_BODY).pack(anchor="w")
 
+        # 开机自启动
+        f5 = tk.Frame(win, bg=BG_MAIN)
+        f5.pack(fill="x", padx=30, pady=4)
+        autostart_var = tk.BooleanVar(value=is_autostart_enabled())
+        tk.Checkbutton(f5, text="开机自启动", variable=autostart_var,
+                       bg=BG_MAIN, fg=FG_TEXT, selectcolor=BG_INPUT,
+                       activebackground=BG_MAIN, activeforeground=FG_TEXT,
+                       font=FONT_BODY).pack(anchor="w")
+        tk.Label(f5, text="开机时自动启动软件并在后台运行",
+                 bg=BG_MAIN, fg=FG_DIM, font=FONT_SMALL).pack(anchor="w", padx=22)
+
         def save():
             self.config["api_key"] = api_entry.get().strip() or DEFAULT_API_KEY
             self.config["wallpaper_style"] = wp_style.get()
             self.config["auto_update"] = auto_var.get()
             self.config["hd"] = hd_var.get()
+
+            # 开机自启动
+            want_autostart = autostart_var.get()
+            if want_autostart != is_autostart_enabled():
+                if set_autostart(want_autostart):
+                    self.config["autostart"] = want_autostart
+                    self._update_status(
+                        "开机自启动已开启" if want_autostart else "开机自启动已关闭",
+                        color=GREEN)
+                else:
+                    messagebox.showerror("错误", "开机自启动设置失败，请检查权限")
+            else:
+                self.config["autostart"] = want_autostart
+
             save_config(self.config)
             win.destroy()
             self._update_status("设置已保存", color=GREEN)
@@ -1129,6 +1159,7 @@ class NASAApp:
             self._update_status("就绪")
 
     # ========== 关闭行为 ==========
+    # ========== 关闭 / 托盘 ==========
     def _on_close(self):
         """点击 X 按钮时弹出选择对话框"""
         dialog = tk.Toplevel(self.root)
@@ -1156,15 +1187,13 @@ class NASAApp:
 
         def do_minimize():
             dialog.destroy()
-            self.root.iconify()
-            self._update_status("已最小化到任务栏，后台持续更新壁纸", color=GREEN)
+            self._minimize_to_tray()
 
         def do_quit():
             dialog.destroy()
-            stop_scheduler()
-            self.root.destroy()
+            self._quit_app()
 
-        ModernButton(btn_frame, text="— 最小化到任务栏 —",
+        ModernButton(btn_frame, text="— 最小化到状态栏 —",
                      command=do_minimize,
                      width=150, height=38, bg=BLUE, hover_bg=BLUE_HOVER,
                      font=(FONT_FAMILY[0], 10)).pack(side="left", padx=8)
@@ -1174,8 +1203,68 @@ class NASAApp:
                      width=120, height=38, bg=ACCENT, hover_bg=ACCENT_HOVER,
                      font=(FONT_FAMILY[0], 10)).pack(side="left", padx=8)
 
-        tk.Label(dialog, text="最小化后后台将持续更新 | 从任务栏点击恢复窗口",
+        tk.Label(dialog, text="最小化后后台持续更新 | 在状态栏右键恢复窗口",
                  bg=BG_MAIN, fg=FG_DIM, font=FONT_SMALL).pack(pady=(8, 0))
+
+    def _minimize_to_tray(self):
+        """最小化到系统托盘"""
+        if self.tray_icon is not None:
+            self.root.withdraw()
+            return
+
+        # 创建托盘图标（简单的 64x64 地球图标）
+        icon_img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        from PIL import ImageDraw
+        draw = ImageDraw.Draw(icon_img)
+        # 画一个简单的圆形地球
+        draw.ellipse([4, 4, 60, 60], fill="#2d8cf0", outline="#1a6fd4", width=2)
+        # 画一个简化的大陆轮廓
+        draw.ellipse([14, 12, 40, 36], fill="#4ecca3")
+        draw.ellipse([22, 42, 50, 58], fill="#4ecca3")
+
+        menu = pystray.Menu(
+            pystray.MenuItem("显示窗口", self._restore_from_tray, default=True),
+            pystray.MenuItem("退出程序", self._quit_from_tray),
+        )
+
+        self.tray_icon = pystray.Icon(
+            "LivingEarthWallpaper",
+            icon_img,
+            "Live Earth Wallpaper",
+            menu,
+        )
+
+        self.root.withdraw()
+        self._update_status("已最小化到状态栏，后台持续更新壁纸", color=GREEN)
+
+        # 在后台线程运行托盘图标
+        import threading
+        threading.Thread(target=self.tray_icon.run, daemon=True).start()
+
+    def _restore_from_tray(self):
+        """从状态栏恢复窗口"""
+        self.root.after(0, self._do_restore)
+
+    def _do_restore(self):
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+        self._update_status("窗口已恢复", color=GREEN)
+
+    def _quit_from_tray(self):
+        """从状态栏退出"""
+        if self.tray_icon:
+            self.tray_icon.stop()
+            self.tray_icon = None
+        self._quit_app()
+
+    def _quit_app(self):
+        """完全退出程序"""
+        if self.tray_icon:
+            self.tray_icon.stop()
+            self.tray_icon = None
+        stop_scheduler()
+        self.root.destroy()
 
 
 def main():
