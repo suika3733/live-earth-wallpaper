@@ -51,8 +51,6 @@ def watermark_image(
         带水印的图片路径
     """
     output_path = _WATERMARK_DIR / f"{output_key or Path(image_path).stem}.jpg"
-    if output_path.exists():
-        output_path.unlink()
 
     try:
         img = Image.open(image_path).convert("RGBA")
