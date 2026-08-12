@@ -8,7 +8,6 @@ build/
 *.egg
 
 # PyInstaller
-*.spec
 *.exe
 
 # Release packages
