@@ -11,7 +11,13 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # 将项目根目录加入 sys.path，以便导入现有模块
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+import sys
+FROZEN = getattr(sys, "frozen", False)
+if FROZEN:
+    PROJECT_ROOT = Path(sys._MEIPASS)
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+THIS_DIR = Path(__file__).resolve().parent if not FROZEN else PROJECT_ROOT
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from flask import Flask, jsonify, request, send_file, send_from_directory
@@ -35,7 +41,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("server")
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+app = Flask(__name__, static_folder=str(THIS_DIR), static_url_path="")
 CORS(app)
 
 # 确保数据目录存在
