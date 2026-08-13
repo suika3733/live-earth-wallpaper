@@ -27,6 +27,9 @@ if _ui_dir.exists():
 
 import server as flask_server
 
+# 启动后台调度器（自动刷新 + 自动设壁纸）
+from scheduler import start_scheduler, stop_scheduler
+
 from logging.handlers import RotatingFileHandler
 
 # 日志目录
@@ -226,6 +229,10 @@ def main():
     time.sleep(1.0)
     logger.info(f"Server ready: {SERVER_URL}")
 
+    # 启动后台调度器（自动刷新 + 自动设为壁纸）
+    start_scheduler()
+    logger.info("Scheduler started by launcher")
+
     # 尝试 WebView，失败则打开浏览器
     try:
         import webview
@@ -273,6 +280,8 @@ def main():
     if _tray_icon:
         _tray_icon.stop()
 
+    # 停止后台调度器
+    stop_scheduler()
     logger.info("Shutting down")
 
 

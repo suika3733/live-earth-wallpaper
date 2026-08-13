@@ -1069,7 +1069,7 @@ body:not(.pywebview) .window-controls {
     <div class="header-brand">
       <img class="header-logo" src="/logo.png" alt="logo">
       <div>
-        <div class="header-title">RealEarth <span class="version-tag">v3.0.7</span></div>
+        <div class="header-title">RealEarth <span class="version-tag">v3.1.0</span></div>
         <div class="header-subtitle">真实地球</div>
       </div>
     </div>
@@ -1384,7 +1384,23 @@ body:not(.pywebview) .window-controls {
       <div class="toggle-row" id="toggleAutoUpdate">
         <div>
           <div class="toggle-label">启用自动更新壁纸</div>
-          <div class="toggle-hint">每天在设定时间自动更新壁纸</div>
+          <div class="toggle-hint">APOD 每天在设定时间自动更新并设为壁纸</div>
+        </div>
+        <div class="toggle-switch on"></div>
+      </div>
+
+      <div class="toggle-row" id="toggleSatAutoSet">
+        <div>
+          <div class="toggle-label">卫星自动设为壁纸</div>
+          <div class="toggle-hint">卫星影像自动刷新后自动设为壁纸</div>
+        </div>
+        <div class="toggle-switch on"></div>
+      </div>
+
+      <div class="toggle-row" id="toggleSdoAutoSet">
+        <div>
+          <div class="toggle-label">SDO 自动设为壁纸</div>
+          <div class="toggle-hint">太阳图像自动刷新后自动设为壁纸</div>
         </div>
         <div class="toggle-switch on"></div>
       </div>
@@ -1546,7 +1562,10 @@ const state = {
   lastSdoPath: null,
   satAutoRefresh: true,
   sdoAutoRefresh: true,
+  satAutoSetWallpaper: true,
+  sdoAutoSetWallpaper: true,
   config: null,
+  nextRefresh: { apod: null, satellite: null, sdo: null },  // 后端下次刷新时间
 };
 
 // ----- DOM References -----
@@ -1624,7 +1643,61 @@ async function pollStatus() {
     if (s.task_status && s.task_status.message) {
       setStatus(s.task_status.message, s.task_status.type || 'ok');
     }
+    // 从后端调度器同步倒计时与开关状态
+    if (s.scheduler) {
+      syncSchedulerUI(s.scheduler);
+    }
   } catch(e) { /* 静默 */ }
+}
+
+// 根据后端调度器信息同步倒计时和开关状态
+function syncSchedulerUI(sch) {
+  // 缓存下次刷新时间（供每秒倒计时精修使用）
+  state.nextRefresh = (sch.next_refresh && typeof sch.next_refresh === 'object')
+    ? sch.next_refresh : state.nextRefresh;
+
+  // 同步开关状态（后端为准）
+  if (sch.satellite_auto_refresh !== undefined && state.satAutoRefresh !== sch.satellite_auto_refresh) {
+    state.satAutoRefresh = sch.satellite_auto_refresh;
+    $('#satAutoToggle').classList.toggle('on', sch.satellite_auto_refresh);
+  }
+  if (sch.sdo_auto_refresh !== undefined && state.sdoAutoRefresh !== sch.sdo_auto_refresh) {
+    state.sdoAutoRefresh = sch.sdo_auto_refresh;
+    $('#sdoAutoToggle').classList.toggle('on', sch.sdo_auto_refresh);
+  }
+  // 同步「自动设为壁纸」开关
+  const setEl = $('#toggleSatAutoSet .toggle-switch');
+  if (sch.sat_auto_set_wallpaper !== undefined && setEl && setEl.classList.contains('on') !== sch.sat_auto_set_wallpaper) {
+    setEl.classList.toggle('on', sch.sat_auto_set_wallpaper);
+    state.satAutoSetWallpaper = sch.sat_auto_set_wallpaper;
+  }
+  const sdoSetEl = $('#toggleSdoAutoSet .toggle-switch');
+  if (sch.sdo_auto_set_wallpaper !== undefined && sdoSetEl && sdoSetEl.classList.contains('on') !== sch.sdo_auto_set_wallpaper) {
+    sdoSetEl.classList.toggle('on', sch.sdo_auto_set_wallpaper);
+    state.sdoAutoSetWallpaper = sch.sdo_auto_set_wallpaper;
+  }
+
+  // 立即刷新一次倒计时显示
+  updateCountdowns(sch.data_source);
+}
+
+// 基于下次刷新时间更新倒计时显示
+function updateCountdowns(dataSource) {
+  const now = Date.now();
+  if (dataSource === 'satellite' && state.nextRefresh.satellite) {
+    const ms = new Date(state.nextRefresh.satellite).getTime() - now;
+    $('#satCountdown').textContent = ms > 0 ? fmtCountdown(ms) : '00:00';
+  } else if (dataSource === 'sdo' && state.nextRefresh.sdo) {
+    const ms = new Date(state.nextRefresh.sdo).getTime() - now;
+    $('#sdoCountdown').textContent = ms > 0 ? fmtCountdown(ms) : '00:00';
+  }
+}
+
+function fmtCountdown(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 // ================================================================
@@ -1684,6 +1757,15 @@ function switchSource(source) {
     sdo: '太阳观测模式 — NASA SDO 太阳动力学天文台'
   };
   setStatus(names[source]);
+
+  // 同步当前数据源到后端 config（调度器据此决定刷新哪个数据源）
+  if (state.config && state.config.data_source !== source) {
+    state.config.data_source = source;
+    api('/api/config', {
+      method: 'POST',
+      body: JSON.stringify({ data_source: source }),
+    }).catch(() => {});
+  }
 
   if (source === 'apod') loadApodImages();
 }
@@ -1924,15 +2006,41 @@ async function setSdoWallpaper() {
 //  AUTO REFRESH TOGGLES
 // ================================================================
 function toggleAutoRefresh(type) {
+  const payload = {};
   if (type === 'sat') {
     state.satAutoRefresh = !state.satAutoRefresh;
     $('#satAutoToggle').classList.toggle('on', state.satAutoRefresh);
+    payload.satellite_auto_refresh = state.satAutoRefresh;
     setStatus(state.satAutoRefresh ? '卫星自动刷新已开启' : '卫星自动刷新已关闭', 'ok');
   } else {
     state.sdoAutoRefresh = !state.sdoAutoRefresh;
     $('#sdoAutoToggle').classList.toggle('on', state.sdoAutoRefresh);
+    payload.sdo_auto_refresh = state.sdoAutoRefresh;
     setStatus(state.sdoAutoRefresh ? 'SDO 自动刷新已开启' : 'SDO 自动刷新已关闭', 'ok');
   }
+  // 写回后端 config，调度器据此开关自动刷新
+  api('/api/config', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }).catch((e) => setStatus('保存自动刷新状态失败: ' + e.message, 'error'));
+}
+
+// 自动设为壁纸开关（设置面板）
+function toggleAutoSetWallpaper(type) {
+  const payload = {};
+  if (type === 'sat') {
+    state.satAutoSetWallpaper = !state.satAutoSetWallpaper;
+    payload.sat_auto_set_wallpaper = state.satAutoSetWallpaper;
+  } else {
+    state.sdoAutoSetWallpaper = !state.sdoAutoSetWallpaper;
+    payload.sdo_auto_set_wallpaper = state.sdoAutoSetWallpaper;
+  }
+  api('/api/config', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }).then(() => {
+    setStatus(type === 'sat' ? '卫星自动设为壁纸设置已保存' : 'SDO 自动设为壁纸设置已保存', 'ok');
+  }).catch((e) => setStatus('保存失败: ' + e.message, 'error'));
 }
 
 // ================================================================
@@ -1948,6 +2056,8 @@ async function saveSettings() {
   const stylePill = $('#stylePills .style-pill.selected');
   const wallpaperStyle = stylePill ? stylePill.dataset.value : 'fill';
   const autoUpdate = $('#toggleAutoUpdate .toggle-switch').classList.contains('on');
+  const satAutoSet = $('#toggleSatAutoSet .toggle-switch').classList.contains('on');
+  const sdoAutoSet = $('#toggleSdoAutoSet .toggle-switch').classList.contains('on');
   const hd = $('#toggleHD .toggle-switch').classList.contains('on');
   const autostart = $('#toggleAutostart .toggle-switch').classList.contains('on');
   const apiKey = $('#apiKeyInput').value.trim();
@@ -1964,6 +2074,8 @@ async function saveSettings() {
         api_key: apiKey,
         wallpaper_style: wallpaperStyle,
         auto_update: autoUpdate,
+        sat_auto_set_wallpaper: satAutoSet,
+        sdo_auto_set_wallpaper: sdoAutoSet,
         hd: hd,
         autostart: autostart,
         wm_font_size: wmFontSize,
@@ -1977,6 +2089,8 @@ async function saveSettings() {
       ...state.config,
       wallpaper_style: wallpaperStyle,
       auto_update: autoUpdate,
+      sat_auto_set_wallpaper: satAutoSet,
+      sdo_auto_set_wallpaper: sdoAutoSet,
       hd,
       autostart,
       wm_font_size: wmFontSize,
@@ -2250,8 +2364,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (state.config.wm_show_sys_time !== undefined) {
       $('#wmShowSysTimeToggle').classList.toggle('on', state.config.wm_show_sys_time);
     }
+    // 自动设为壁纸开关（卫星 / SDO）
+    if (state.config.sat_auto_set_wallpaper !== undefined) {
+      $('#toggleSatAutoSet .toggle-switch').classList.toggle('on', state.config.sat_auto_set_wallpaper);
+      state.satAutoSetWallpaper = state.config.sat_auto_set_wallpaper;
+    }
+    if (state.config.sdo_auto_set_wallpaper !== undefined) {
+      $('#toggleSdoAutoSet .toggle-switch').classList.toggle('on', state.config.sdo_auto_set_wallpaper);
+      state.sdoAutoSetWallpaper = state.config.sdo_auto_set_wallpaper;
+    }
+    // 同步自动刷新开关
+    if (state.config.satellite_auto_refresh !== undefined) {
+      state.satAutoRefresh = state.config.satellite_auto_refresh;
+      $('#satAutoToggle').classList.toggle('on', state.satAutoRefresh);
+    }
+    if (state.config.sdo_auto_refresh !== undefined) {
+      state.sdoAutoRefresh = state.config.sdo_auto_refresh;
+      $('#sdoAutoToggle').classList.toggle('on', state.sdoAutoRefresh);
+    }
+    // 同步当前数据源面板
+    if (state.config.data_source && state.config.data_source !== 'apod') {
+      switchSource(state.config.data_source);
+    }
   } catch (e) {
     console.warn('Config load failed, using defaults:', e.message);
+  }
+
+  // 确保后台调度器已启动（自动刷新 + 自动设壁纸的执行者）
+  try {
+    await api('/api/scheduler/start', { method: 'POST' });
+  } catch (e) {
+    console.warn('Scheduler start failed:', e.message);
   }
 
   // 加载 SDO 波段列表到设置面板
@@ -2290,6 +2433,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#cancelSettings').addEventListener('click', closeSettings);
   $('#saveSettings').addEventListener('click', saveSettings);
   $('#btnTestSdo').addEventListener('click', testSdoConnectivity);
+  // 设置面板中的「自动设为壁纸」开关
+  $('#toggleSatAutoSet').addEventListener('click', () => toggleAutoSetWallpaper('sat'));
+  $('#toggleSdoAutoSet').addEventListener('click', () => toggleAutoSetWallpaper('sdo'));
 
   // Log viewer
   $('#btnViewLogs').addEventListener('click', openLogViewer);
@@ -2349,25 +2495,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.key === '3') switchSource('sdo');
   });
 
-  // Countdown timers
-  let satCountdown = 9 * 60 + 58;
+  // Countdown 精修（每秒根据后端下次刷新时间更新）
   setInterval(() => {
-    satCountdown = satCountdown > 0 ? satCountdown - 1 : 9 * 60 + 59;
-    const m = Math.floor(satCountdown / 60);
-    const s = satCountdown % 60;
-    $('#satCountdown').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    if (state.config && state.config.data_source) {
+      updateCountdowns(state.config.data_source);
+    }
   }, 1000);
 
-  let sdoCountdown = 59 * 60 + 42;
-  setInterval(() => {
-    sdoCountdown = sdoCountdown > 0 ? sdoCountdown - 1 : 59 * 60 + 59;
-    const m = Math.floor(sdoCountdown / 60);
-    const s = sdoCountdown % 60;
-    $('#sdoCountdown').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }, 1000);
-
-  // Periodic status poll
+  // Periodic status poll（同步调度器状态与倒计时基准）
   setInterval(pollStatus, 5000);
+
+  // 首次立即拉取一次状态
+  pollStatus();
 
   // Initial status
   setStatus('就绪 — 天文图片模式 | 后端已连接');

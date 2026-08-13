@@ -31,7 +31,9 @@ from config import (
 from nasa_api import fetch_apod_range, fetch_apod, download_image, ApodImage
 from categorizer import categorize_image, get_category_name, get_all_category_keys
 from wallpaper import set_wallpaper, set_wallpaper_style, watermark_image
-from scheduler import start_scheduler, stop_scheduler, is_scheduler_running
+from scheduler import (
+    start_scheduler, stop_scheduler, is_scheduler_running, get_next_refresh_info,
+)
 from providers import GEOSTATIONARY_SATELLITES, SDO_BANDS, fetch_satellite_image, fetch_sdo_image
 from providers.sdo import test_sdo_connectivity
 from autostart import set_autostart, is_autostart_enabled
@@ -134,6 +136,7 @@ def api_status():
     return jsonify({
         "scheduler_running": is_scheduler_running(),
         "task_status": _task_status,
+        "scheduler": get_next_refresh_info(),
     })
 
 
@@ -158,6 +161,7 @@ def api_save_config():
         "satellite_size", "satellite_auto_refresh", "satellite_refresh_interval",
         "sdo_band", "sdo_size", "sdo_auto_refresh", "sdo_refresh_interval",
         "wallpaper_style", "autostart",
+        "apod_auto_set_wallpaper", "sat_auto_set_wallpaper", "sdo_auto_set_wallpaper",
         "wm_font_size", "wm_font_family", "wm_position", "wm_show_sys_time",
     ]
     for key in allowed_keys:
@@ -497,7 +501,10 @@ def api_scheduler_stop():
 
 @app.route("/api/scheduler/status")
 def api_scheduler_status():
-    return jsonify({"running": is_scheduler_running()})
+    return jsonify({
+        "running": is_scheduler_running(),
+        "scheduler": get_next_refresh_info(),
+    })
 
 
 # ================================================================
@@ -553,7 +560,7 @@ def api_logs_read():
 @app.route("/api/version")
 def api_version():
     """返回当前版本号"""
-    return jsonify({"version": "v3.0.6"})
+    return jsonify({"version": "v3.1.0"})
 
 
 # ================================================================
@@ -563,6 +570,8 @@ def api_version():
 def run_server(host="127.0.0.1", port=51234):
     """启动 Flask 服务器"""
     logger.info(f"Starting server on {host}:{port}")
+    # 确保后台调度器随服务启动（幂等，launcher 也会调用）
+    start_scheduler()
     app.run(host=host, port=port, debug=False, threaded=True)
 
 

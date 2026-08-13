@@ -32,6 +32,9 @@ DEFAULT_CONFIG = {
     "earth_auto_refresh": True,         # [兼容]
     "earth_refresh_interval": 10,       # [兼容]
     "wallpaper_style": "fill",
+    "apod_auto_set_wallpaper": True,   # APOD 每日更新后自动设为壁纸
+    "sat_auto_set_wallpaper": True,    # 卫星自动刷新后自动设为壁纸
+    "sdo_auto_set_wallpaper": True,    # SDO 自动刷新后自动设为壁纸
     "autostart": False,                # 开机自启动
     "wm_font_size": 0,                 # 水印字体大小（0=自适应）
     "wm_font_family": "msyh",          # 水印字体
