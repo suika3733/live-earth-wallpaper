@@ -1,5 +1,5 @@
 """
-Live Earth Wallpaper — 新版 Web UI 入口
+RealEarth 真实地球 — 新版 Web UI 入口
 支持 PyInstaller 打包，Flask 后端 + WebView/Browser 前端
 """
 import sys
@@ -27,15 +27,49 @@ if _ui_dir.exists():
 
 import server as flask_server
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
+from logging.handlers import RotatingFileHandler
+
+# 日志目录
+_LOG_DIR = Path.home() / ".nasa_wallpaper" / "logs"
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_LOG_FILE = _LOG_DIR / "app.log"
+
+# 根日志器配置（同时输出到文件和控制台）
+_root_logger = logging.getLogger()
+_root_logger.setLevel(logging.INFO)
+_root_logger.handlers.clear()
+
+_fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+# 文件处理器（最多保留 5 个文件，每个最大 2MB）
+_fh = RotatingFileHandler(str(_LOG_FILE), maxBytes=2 * 1024 * 1024, backupCount=5, encoding="utf-8")
+_fh.setFormatter(_fmt)
+_root_logger.addHandler(_fh)
+
+# 控制台处理器
+_ch = logging.StreamHandler(sys.stdout)
+_ch.setFormatter(_fmt)
+_root_logger.addHandler(_ch)
+
 logger = logging.getLogger("launcher")
 
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 51234
 SERVER_URL = f"http://{SERVER_HOST}:{SERVER_PORT}"
+
+
+def _is_already_running() -> bool:
+    """检测是否已有实例在运行（端口被占用即视为已运行）"""
+    import socket
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.5)
+    try:
+        result = s.connect_ex((SERVER_HOST, SERVER_PORT))
+        return result == 0
+    finally:
+        s.close()
+
 
 # ---- 系统托盘 & 窗口状态 ----
 _tray_icon = None
@@ -79,9 +113,31 @@ class WindowAPI:
         return True
 
 
+def _get_logo_path():
+    """查找 logo 图片路径（打包/开发两种模式）"""
+    candidates = [
+        BASE_DIR / "logo.png",                   # FROZEN: MEIPASS/logo.png
+        BASE_DIR / "ui-redesign" / "logo.png",  # 开发: ui-redesign/logo.png
+    ]
+    for p in candidates:
+        if p.exists():
+            return str(p)
+    return None
+
+
 def _create_tray_image():
     from PIL import Image, ImageDraw
 
+    # 优先使用新 logo
+    logo_path = _get_logo_path()
+    if logo_path:
+        try:
+            logo = Image.open(logo_path).convert("RGBA")
+            return logo.resize((64, 64), Image.LANCZOS)
+        except Exception as e:
+            logger.warning(f"Load tray logo failed: {e}")
+
+    # 回退：代码绘制的圆形图标
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     dc = ImageDraw.Draw(img)
     dc.ellipse([4, 4, 60, 60], fill=(77, 171, 154))
@@ -111,9 +167,9 @@ def _run_tray():
         pystray.MenuItem("退出", _on_tray_quit),
     )
     _tray_icon = pystray.Icon(
-        "LiveEarthWallpaper",
+        "RealEarth",
         _create_tray_image(),
-        "Live Earth Wallpaper",
+        "RealEarth 真实地球",
         menu,
     )
     _tray_icon.run()
@@ -149,6 +205,21 @@ def start_flask():
 def main():
     global _window
 
+    # 单实例保护：已有实例运行时，直接退出，避免端口冲突导致界面错乱
+    if _is_already_running():
+        logger.warning("检测到已有实例运行，本实例退出")
+        try:
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(
+                0,
+                "RealEarth 已在运行。\n请检查系统托盘图标（右下角）。",
+                "已在运行",
+                0x40,  # MB_ICONINFORMATION
+            )
+        except Exception:
+            pass
+        return
+
     # 启动 Flask
     t = threading.Thread(target=start_flask, daemon=True)
     t.start()
@@ -162,7 +233,7 @@ def main():
         api = WindowAPI()
 
         _window = webview.create_window(
-            title="Live Earth Wallpaper — 卫星壁纸",
+            title="RealEarth — 真实地球",
             url=SERVER_URL,
             width=1180,
             height=760,

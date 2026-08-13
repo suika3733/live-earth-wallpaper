@@ -1,5 +1,5 @@
 """
-Live Earth Wallpaper — Flask REST API Server
+RealEarth 真实地球 — Flask REST API Server
 为 HTML 前端提供所有后端功能接口
 """
 import sys
@@ -33,13 +33,31 @@ from categorizer import categorize_image, get_category_name, get_all_category_ke
 from wallpaper import set_wallpaper, set_wallpaper_style, watermark_image
 from scheduler import start_scheduler, stop_scheduler, is_scheduler_running
 from providers import GEOSTATIONARY_SATELLITES, SDO_BANDS, fetch_satellite_image, fetch_sdo_image
+from providers.sdo import test_sdo_connectivity
 from autostart import set_autostart, is_autostart_enabled
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    handlers=[],  # 由 launcher.py 统一配置 handler，此处不加
 )
 logger = logging.getLogger("server")
+
+# 日志目录（与 launcher.py 保持一致）
+_LOG_DIR = Path.home() / ".nasa_wallpaper" / "logs"
+
+
+def _cache_path_to_url(path) -> str | None:
+    """将缓存图片的绝对路径转换为可访问的 URL"""
+    if not path:
+        return None
+    try:
+        p = Path(path).resolve()
+        rel = p.relative_to(IMAGE_CACHE_DIR.resolve())
+        return f"/api/image-cache/{rel.as_posix()}"
+    except (ValueError, OSError):
+        return None
+
 
 app = Flask(__name__, static_folder=str(THIS_DIR), static_url_path="")
 CORS(app)
@@ -49,6 +67,44 @@ ensure_dirs()
 
 # ---- 状态跟踪 ----
 _task_status = {"running": False, "message": "就绪", "type": "ok"}
+
+# ---- 动态时间水印 ----
+import threading
+
+_active_wallpaper = None  # 当前活跃壁纸信息（用于动态刷新系统时间）
+_dynamic_time_thread = None
+_dynamic_time_stop = threading.Event()
+
+
+def _dynamic_time_loop():
+    """每 60 秒刷新水印中的系统时间（仅当 show_sys_time=True 时）"""
+    logger.info("Dynamic time refresh thread started")
+    while not _dynamic_time_stop.is_set():
+        _dynamic_time_stop.wait(60)
+        if not _active_wallpaper or not _active_wallpaper.get("show_sys_time"):
+            continue
+        try:
+            wp = _active_wallpaper
+            wp_path = watermark_image(
+                wp["image_path"], wp["left_text"], wp["right_text"], wp["output_key"],
+                font_size=wp.get("font_size"),
+                font_family=wp.get("font_family", "msyh"),
+                position=wp.get("position", "top_right"),
+                show_sys_time=True,
+            )
+            set_wallpaper(wp_path, style=wp.get("style", "fill"))
+            logger.debug("Dynamic time watermark refreshed")
+        except Exception as e:
+            logger.warning(f"Dynamic time refresh failed: {e}")
+
+
+def _start_dynamic_time_thread():
+    global _dynamic_time_thread
+    if _dynamic_time_thread and _dynamic_time_thread.is_alive():
+        return
+    _dynamic_time_stop.clear()
+    _dynamic_time_thread = threading.Thread(target=_dynamic_time_loop, daemon=True)
+    _dynamic_time_thread.start()
 
 
 # ================================================================
@@ -102,6 +158,7 @@ def api_save_config():
         "satellite_size", "satellite_auto_refresh", "satellite_refresh_interval",
         "sdo_band", "sdo_size", "sdo_auto_refresh", "sdo_refresh_interval",
         "wallpaper_style", "autostart",
+        "wm_font_size", "wm_font_family", "wm_position", "wm_show_sys_time",
     ]
     for key in allowed_keys:
         if key in data:
@@ -132,11 +189,20 @@ def api_apod_images():
     for date_str, img_data in images.items():
         cat = img_data.get("category", categorize_image(ApodImage.from_dict(img_data)))
         if category == "all" or cat == category:
+            sd_path = get_image_cache_path(date_str, hd=False)
+            hd_path = get_image_cache_path(date_str, hd=True)
+            if sd_path.exists():
+                cached_url = _cache_path_to_url(sd_path)
+            elif hd_path.exists():
+                cached_url = _cache_path_to_url(hd_path)
+            else:
+                cached_url = None
             result.append({
                 **img_data,
                 "category": cat,
                 "category_name": get_category_name(cat),
-                "cached": get_image_cache_path(date_str, hd=False).exists(),
+                "cached": sd_path.exists() or hd_path.exists(),
+                "preview_url": cached_url,
             })
 
     # 按日期倒序
@@ -264,6 +330,7 @@ def api_satellite_fetch():
         return jsonify({
             "ok": True,
             "path": path,
+            "url": _cache_path_to_url(path),
             "satellite": satellite,
             "satellite_name": sat_name,
         })
@@ -303,6 +370,7 @@ def api_sdo_fetch():
         return jsonify({
             "ok": True,
             "path": path,
+            "url": _cache_path_to_url(path),
             "band": band,
             "band_name": band_name,
         })
@@ -310,6 +378,22 @@ def api_sdo_fetch():
         logger.error(f"SDO fetch failed: {e}")
         _task_status = {"running": False, "message": f"获取失败: {e}", "type": "error"}
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/sdo/bands")
+def api_sdo_bands():
+    """返回所有可用的 SDO 波段"""
+    bands = [{"key": k, "name": v["name"], "desc": v["desc"]} for k, v in SDO_BANDS.items()]
+    return jsonify({"bands": bands})
+
+
+@app.route("/api/sdo/test", methods=["POST"])
+def api_sdo_test():
+    """测试 NASA SDO 服务器连通性"""
+    data = request.get_json(force=True) or {}
+    band = data.get("band")  # None 则测试全部
+    result = test_sdo_connectivity(band=band)
+    return jsonify(result)
 
 
 # ================================================================
@@ -344,21 +428,46 @@ def api_wallpaper_set():
 @app.route("/api/wallpaper/watermark-and-set", methods=["POST"])
 def api_wallpaper_watermark_set():
     """加水印并设置壁纸"""
-    global _task_status
+    global _task_status, _active_wallpaper
     try:
         data = request.get_json(force=True)
         image_path = data.get("path", "")
-        left_text = data.get("left_text", "Live Earth Wallpaper")
+        left_text = data.get("left_text", "RealEarth")
         right_text = data.get("right_text", "")
         output_key = data.get("output_key", "wp")
         style = data.get("style", "fill")
+        font_size = data.get("font_size")
+        font_family = data.get("font_family", "msyh")
+        position = data.get("position", "top_right")
+        show_sys_time = data.get("show_sys_time", True)
 
         if not image_path or not os.path.exists(image_path):
             return jsonify({"ok": False, "error": "图片文件不存在"}), 400
 
-        wp_path = watermark_image(image_path, left_text, right_text, output_key)
+        wp_path = watermark_image(
+            image_path, left_text, right_text, output_key,
+            font_size=font_size,
+            font_family=font_family,
+            position=position,
+            show_sys_time=show_sys_time,
+        )
         success = set_wallpaper(wp_path, style=style)
         if success:
+            # 保存当前壁纸信息，供动态时间刷新线程使用
+            _active_wallpaper = {
+                "image_path": image_path,
+                "left_text": left_text,
+                "right_text": right_text,
+                "output_key": output_key,
+                "style": style,
+                "font_size": font_size,
+                "font_family": font_family,
+                "position": position,
+                "show_sys_time": show_sys_time,
+            }
+            # 启用系统时间时，启动动态刷新线程
+            if show_sys_time:
+                _start_dynamic_time_thread()
             _task_status = {"running": False, "message": "水印壁纸已设置", "type": "ok"}
             return jsonify({"ok": True, "watermarked_path": wp_path})
         else:
@@ -389,6 +498,62 @@ def api_scheduler_stop():
 @app.route("/api/scheduler/status")
 def api_scheduler_status():
     return jsonify({"running": is_scheduler_running()})
+
+
+# ================================================================
+#  日志 & 版本
+# ================================================================
+
+@app.route("/api/logs/list")
+def api_logs_list():
+    """列出所有日志文件"""
+    log_dir = _LOG_DIR
+    if not log_dir.exists():
+        return jsonify({"logs": []})
+    files = []
+    for f in sorted(log_dir.glob("app.log*"), reverse=True):
+        files.append({
+            "name": f.name,
+            "size": f.stat().st_size,
+            "modified": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
+        })
+    return jsonify({"logs": files})
+
+
+@app.route("/api/logs/read")
+def api_logs_read():
+    """读取指定日志文件内容（最新 N 行）"""
+    filename = request.args.get("file", "app.log")
+    lines = int(request.args.get("lines", 200))
+    log_path = _LOG_DIR / filename
+
+    # 安全检查：防止路径穿越
+    log_path = log_path.resolve()
+    log_dir = _LOG_DIR.resolve()
+    if not str(log_path).startswith(str(log_dir)):
+        return jsonify({"ok": False, "error": "非法文件路径"}), 403
+
+    if not log_path.exists():
+        return jsonify({"ok": False, "error": "日志文件不存在"}), 404
+
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+            all_lines = f.readlines()
+            recent = all_lines[-lines:] if len(all_lines) > lines else all_lines
+        return jsonify({
+            "ok": True,
+            "file": log_path.name,
+            "total_lines": len(all_lines),
+            "content": "".join(recent),
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/version")
+def api_version():
+    """返回当前版本号"""
+    return jsonify({"version": "v3.0.6"})
 
 
 # ================================================================

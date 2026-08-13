@@ -33,6 +33,10 @@ DEFAULT_CONFIG = {
     "earth_refresh_interval": 10,       # [兼容]
     "wallpaper_style": "fill",
     "autostart": False,                # 开机自启动
+    "wm_font_size": 0,                 # 水印字体大小（0=自适应）
+    "wm_font_family": "msyh",          # 水印字体
+    "wm_position": "top_right",        # 水印位置
+    "wm_show_sys_time": True,          # 是否显示当前系统时间
 }
 
 # 壁纸样式映射（注册表值）

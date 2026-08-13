@@ -1,5 +1,6 @@
 """Windows 壁纸设置 - 支持壁纸样式控制和图片水印"""
 import ctypes
+import datetime
 import logging
 import time
 import uuid
@@ -24,6 +25,17 @@ _WATERMARK_FONTS = [
     "Arial",
 ]
 
+# 可选字体（用户可编辑）
+_FONT_FAMILIES = {
+    "msyh": "C:/Windows/Fonts/msyh.ttc",
+    "simhei": "C:/Windows/Fonts/simhei.ttf",
+    "simsun": "C:/Windows/Fonts/simsun.ttc",
+    "arial": "C:/Windows/Fonts/arial.ttf",
+}
+
+# 水印位置：四角
+_POSITIONS = ("top_right", "top_left", "bottom_right", "bottom_left")
+
 
 def _get_watermark_font(size: int) -> ImageFont.FreeTypeFont:
     """获取可用的中文字体"""
@@ -35,19 +47,38 @@ def _get_watermark_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.load_default()
 
 
+def _get_font(family: str, size: int) -> ImageFont.FreeTypeFont:
+    """按字体名获取字体，失败则回退到默认字体"""
+    path = _FONT_FAMILIES.get(family)
+    if path:
+        try:
+            return ImageFont.truetype(path, size)
+        except (OSError, IOError):
+            pass
+    return _get_watermark_font(size)
+
+
 def watermark_image(
     image_path: str,
     left_text: str,
     right_text: str | None = None,
     output_key: str | None = None,
+    font_size: int | None = None,
+    font_family: str = "msyh",
+    position: str = "top_right",
+    show_sys_time: bool = True,
 ) -> str:
-    """在图片右下角空白区域添加半透明水印标注（角标风格），保存到缓存目录
+    """在图片角落添加半透明水印标注（角标风格），保存到缓存目录
 
     Args:
         image_path: 原始图片路径
         left_text: 第一行文字（来源信息，如 "NASA 每日天文图片"）
         right_text: 第二行文字（时间信息，如 "2026-08-11 | M31 仙女座星系"）
         output_key: 输出文件名键（不含扩展名）
+        font_size: 字体大小（像素），None 则按图片尺寸自适应
+        font_family: 字体（msyh/simhei/simsun/arial）
+        position: 位置（top_right/top_left/bottom_right/bottom_left）
+        show_sys_time: 是否追加显示当前系统时间
 
     Returns:
         带水印的图片路径
@@ -61,35 +92,50 @@ def watermark_image(
         img = Image.open(image_path).convert("RGBA")
         iw, ih = img.size
 
-        # 字体大小：基于图片尺寸自适应
-        base_size = max(14, min(28, int(min(iw, ih) * 0.022)))
-        font_main = _get_watermark_font(base_size)
-        font_sub = _get_watermark_font(max(10, base_size - 4))
+        # 字体大小：用户指定或自适应
+        if font_size and font_size > 0:
+            base_size = int(font_size)
+        else:
+            base_size = max(14, min(28, int(min(iw, ih) * 0.022)))
+        font_main = _get_font(font_family, base_size)
+        font_sub = _get_font(font_family, max(10, base_size - 4))
+
+        # 当前系统时间（可选第三行）
+        sys_time_text = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # 文字尺寸测量
         draw_tmp = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        l_bbox = draw_tmp.textbbox((0, 0), left_text, font=font_main)
-        lw = l_bbox[2] - l_bbox[0]
-        lh = l_bbox[3] - l_bbox[1]
-
-        text_w = lw
-        text_h = lh
-        has_sub = False
+        lines = [(left_text, font_main)]
         if right_text:
-            has_sub = True
-            r_bbox = draw_tmp.textbbox((0, 0), right_text, font=font_sub)
-            rw = r_bbox[2] - r_bbox[0]
-            rh = r_bbox[3] - r_bbox[1]
-            text_w = max(lw, rw)
-            text_h = lh + 2 + rh
+            lines.append((right_text, font_sub))
+        if show_sys_time:
+            lines.append((sys_time_text, font_sub))
 
-        # 角标尺寸和位置：放在右上角空白区域（避免被 Windows 任务栏遮挡）
+        text_w = 0
+        text_h = 0
+        for text, font in lines:
+            bbox = draw_tmp.textbbox((0, 0), text, font=font)
+            text_w = max(text_w, bbox[2] - bbox[0])
+            text_h += (bbox[3] - bbox[1]) + 3  # 行间距 3px
+
+        # 角标尺寸和位置
         padding_x = int(iw * 0.025)
         padding_y = int(ih * 0.015)
         badge_w = text_w + padding_x * 2
         badge_h = text_h + padding_y * 2
-        badge_x = iw - badge_w - padding_x  # 靠右
-        badge_y = padding_y  # 靠顶（任务栏通常在底部）
+
+        if position == "top_left":
+            badge_x = padding_x
+            badge_y = padding_y
+        elif position == "bottom_right":
+            badge_x = iw - badge_w - padding_x
+            badge_y = ih - badge_h - padding_y
+        elif position == "bottom_left":
+            badge_x = padding_x
+            badge_y = ih - badge_h - padding_y
+        else:  # top_right（默认）
+            badge_x = iw - badge_w - padding_x
+            badge_y = padding_y
 
         # 创建半透明覆盖层
         overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
@@ -98,7 +144,6 @@ def watermark_image(
         # 圆角矩形背景：半透明深色
         radius = 10
         bg_alpha = 140
-        # 用多边形画圆角背景
         draw.rounded_rectangle(
             [badge_x, badge_y, badge_x + badge_w, badge_y + badge_h],
             radius=radius,
@@ -113,25 +158,18 @@ def watermark_image(
             width=1,
         )
 
-        # 第一行文字（来源）
+        # 逐行绘制文字
         text_x = badge_x + padding_x
         text_y = badge_y + padding_y
-        draw.text(
-            (text_x, text_y),
-            left_text,
-            fill=(220, 230, 250, 230),
-            font=font_main,
-        )
-
-        # 第二行文字（时间/信息）
-        if has_sub:
-            text_y2 = text_y + lh + 2
+        for idx, (text, font) in enumerate(lines):
             draw.text(
-                (text_x, text_y2),
-                right_text,
-                fill=(140, 165, 200, 200),
-                font=font_sub,
+                (text_x, text_y),
+                text,
+                fill=(220, 230, 250, 230) if idx == 0 else (140, 165, 200, 200),
+                font=font,
             )
+            bbox = draw_tmp.textbbox((0, 0), text, font=font)
+            text_y += (bbox[3] - bbox[1]) + 3
 
         # 合成并保存
         result = Image.alpha_composite(img, overlay).convert("RGB")

@@ -19,11 +19,17 @@ logger = logging.getLogger(__name__)
 SDO_RESOLUTIONS = [512, 1024, 2048, 4096]
 
 SDO_BANDS = {
-    "0304":      {"name": "304 Å (色球层)",     "desc": "极紫外 - 太阳色球层与过渡区"},
-    "0171":      {"name": "171 Å (日冕)",       "desc": "极紫外 - 太阳日冕"},
-    "0304pfss":  {"name": "304 Å + PFSS",     "desc": "304 埃 + 磁场线叠加"},
-    "0171pfss":  {"name": "171 Å + PFSS",     "desc": "171 埃 + 磁场线叠加"},
-    "HMIIC":     {"name": "连续光球 (可见光)",  "desc": "可见光 - 太阳黑子与表面"},
+    "0304":      {"name": "304 Å (色球层)",      "desc": "极紫外 - 太阳色球层与过渡区"},
+    "0171":      {"name": "171 Å (日冕)",        "desc": "极紫外 - 太阳日冕"},
+    "0211":      {"name": "211 Å (活动区)",      "desc": "极紫外 - 太阳活动区"},
+    "0193":      {"name": "193 Å (日冕高温)",    "desc": "极紫外 - 日冕高温"},
+    "0094":      {"name": "94 Å (耀斑)",         "desc": "极紫外 - 太阳耀斑"},
+    "0131":      {"name": "131 Å (过渡区)",      "desc": "极紫外 - 过渡区"},
+    "0335":      {"name": "335 Å (活动区)",      "desc": "极紫外 - 活动区"},
+    "1600":      {"name": "1600 Å (上层光球)",   "desc": "紫外 - 上层光球"},
+    "1700":      {"name": "1700 Å (光球)",       "desc": "紫外 - 光球"},
+    "HMIIC":     {"name": "连续光球 (可见光)",    "desc": "可见光 - 太阳黑子与表面"},
+    "HMIB":      {"name": "磁场图 (磁图)",        "desc": "磁场线 - 太阳磁图"},
 }
 
 SDO_CACHE_DIR = IMAGE_CACHE_DIR / "sdo"
@@ -75,3 +81,49 @@ def fetch_sdo_image(
     except Exception as e:
         logger.error(f"SDO download failed: {e}")
         return None
+
+
+def test_sdo_connectivity(band: str = None, timeout: int = 10) -> dict:
+    """测试 NASA SDO 服务器连通性
+
+    Args:
+        band: 指定波段测试，None 则测试全部波段
+        timeout: 超时秒数
+
+    Returns:
+        {"ok": bool, "results": [{band, name, status_code, ok, latency_ms}]}
+    """
+    if band is not None:
+        bands = [band] if band in SDO_BANDS else []
+    else:
+        bands = list(SDO_BANDS.keys())
+
+    results = []
+    for b in bands:
+        url = f"https://sdo.gsfc.nasa.gov/assets/img/latest/latest_1024_{b}.jpg"
+        import time as _time
+        try:
+            start = _time.time()
+            resp = requests.get(url, timeout=timeout, stream=True)
+            latency = int((_time.time() - start) * 1000)
+            # 只取状态码，不下载完整图片（HEAD 可能不被支持，用 stream GET + 关闭）
+            resp.close()
+            ok = resp.status_code == 200
+            results.append({
+                "band": b,
+                "name": SDO_BANDS[b]["name"],
+                "status_code": resp.status_code,
+                "ok": ok,
+                "latency_ms": latency,
+            })
+        except Exception as e:
+            results.append({
+                "band": b,
+                "name": SDO_BANDS[b]["name"],
+                "status_code": 0,
+                "ok": False,
+                "latency_ms": None,
+                "error": str(e),
+            })
+
+    return {"ok": all(r["ok"] for r in results), "results": results}

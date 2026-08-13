@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('ui-redesign/index.html', '.')]
+datas = [('ui-redesign/index.html', '.'), ('ui-redesign/logo.png', '.')]
 binaries = []
 hiddenimports = ['server', 'autostart', 'providers', 'providers.geostationary', 'providers.sdo', 'pystray', 'flask', 'flask_cors', 'webview']
 tmp_ret = collect_all('PIL')
@@ -29,7 +29,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='LiveEarthWallpaper',
+    name='RealEarth',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

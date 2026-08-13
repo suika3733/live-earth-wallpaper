@@ -7,7 +7,7 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
-APP_NAME = "LivingEarthWallpaper"
+APP_NAME = "RealEarth"
 
 
 def _get_startup_command() -> str:

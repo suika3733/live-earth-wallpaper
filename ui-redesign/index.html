@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Earth Wallpaper — 卫星壁纸</title>
+<title>RealEarth — 真实地球</title>
 <style>
 /* ============================================================
-   DESIGN SYSTEM: COSMIC OBSERVATORY
+   DESIGN SYSTEM: REALEARTH 真实地球
    ============================================================ */
 
 /* ----- Design Tokens ----- */
@@ -174,17 +174,8 @@ body {
 .header-logo {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, #4dab9a, #1a5a8a 60%, #0a1a3a);
-  position: relative;
-  overflow: hidden;
-}
-.header-logo::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 60% 45%, rgba(255,255,255,0.25) 0%, transparent 60%);
-  border-radius: 50%;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .header-title {
@@ -197,6 +188,19 @@ body {
   font-size: var(--text-xs);
   color: var(--text-muted);
   letter-spacing: 0.04em;
+}
+
+/* Version tag in header */
+.version-tag {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--accent-primary);
+  background: rgba(77, 171, 154, 0.12);
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
 }
 
 /* Source tabs in header */
@@ -1063,10 +1067,10 @@ body:not(.pywebview) .window-controls {
   <!-- ===== HEADER ===== -->
   <header class="header pywebview-drag-region">
     <div class="header-brand">
-      <div class="header-logo"></div>
+      <img class="header-logo" src="/logo.png" alt="logo">
       <div>
-        <div class="header-title">Live Earth Wallpaper</div>
-        <div class="header-subtitle">COSMIC OBSERVATORY</div>
+        <div class="header-title">RealEarth <span class="version-tag">v3.0.7</span></div>
+        <div class="header-subtitle">真实地球</div>
       </div>
     </div>
 
@@ -1155,32 +1159,7 @@ body:not(.pywebview) .window-controls {
       <!-- SDO controls -->
       <div class="sidebar-section" id="sdoSidebar" style="display:none;">
         <div class="sidebar-label">观测波段</div>
-        <div class="radio-group" id="sdoBandGroup">
-          <div class="radio-item selected" data-value="0304">
-            <span class="band-swatch band-0304"></span>304 Å — 色球层
-          </div>
-          <div class="radio-item" data-value="0171">
-            <span class="band-swatch band-0171"></span>171 Å — 日冕
-          </div>
-          <div class="radio-item" data-value="continuum">
-            <span class="band-swatch band-continuum"></span>连续光球 — 太阳黑子
-          </div>
-          <div class="radio-item" data-value="magnetogram">
-            <span class="band-swatch band-magnetogram"></span>磁场图 — 磁场线
-          </div>
-          <div class="radio-item" data-value="0211">
-            <span class="band-swatch band-0211"></span>211 Å — 活动区
-          </div>
-          <div class="radio-item" data-value="0193">
-            <span class="band-swatch band-0193"></span>193 Å — 日冕高温
-          </div>
-          <div class="radio-item" data-value="0094">
-            <span class="band-swatch band-0094"></span>94 Å — 耀斑
-          </div>
-          <div class="radio-item" data-value="0131">
-            <span class="band-swatch band-0131"></span>131 Å — 过渡区
-          </div>
-        </div>
+        <div class="radio-group" id="sdoBandGroup"></div>
         <div class="sidebar-info">
           <div class="sidebar-info-title">数据来源</div>
           <div class="sidebar-info-text">NASA 太阳动力学天文台<br>拍摄频率约 15-60 分钟<br>SDO — Solar Dynamics Observatory</div>
@@ -1345,6 +1324,63 @@ body:not(.pywebview) .window-controls {
         </div>
       </div>
 
+      <div class="form-group">
+        <label class="form-label">水印设置</label>
+        <div style="display:flex; gap:12px; margin-bottom:10px;">
+          <div style="flex:1;">
+            <div class="form-hint" style="margin-bottom:4px;">字号</div>
+            <select class="form-input" id="wmFontSizeInput">
+              <option value="0">自动（跟随图片）</option>
+              <option value="14">小</option>
+              <option value="18">中</option>
+              <option value="22">大</option>
+              <option value="28">特大</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <div class="form-hint" style="margin-bottom:4px;">字体</div>
+            <select class="form-input" id="wmFontFamilySelect">
+              <option value="msyh">微软雅黑</option>
+              <option value="simhei">黑体</option>
+              <option value="simsun">宋体</option>
+              <option value="arial">Arial</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <div style="flex:1;">
+            <div class="form-hint" style="margin-bottom:4px;">水印位置</div>
+            <select class="form-input" id="wmPositionSelect">
+              <option value="top_right">右上</option>
+              <option value="top_left">左上</option>
+              <option value="bottom_right">右下</option>
+              <option value="bottom_left">左下</option>
+            </select>
+          </div>
+          <div style="flex:1; display:flex; align-items:flex-end; justify-content:space-between; padding-bottom:4px;">
+            <div>
+              <div class="toggle-label">显示系统时间</div>
+              <div class="toggle-hint">水印追加当前时间</div>
+            </div>
+            <div class="toggle-switch on" id="wmShowSysTimeToggle"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">太阳观测（SDO）设置</label>
+        <div style="display:flex; gap:12px; margin-bottom:10px;">
+          <div style="flex:1;">
+            <div class="form-hint" style="margin-bottom:4px;">默认波段</div>
+            <select class="form-input" id="sdoBandSettingSelect"></select>
+          </div>
+          <div style="flex:1; display:flex; align-items:flex-end;">
+            <button class="btn btn-ghost" id="btnTestSdo" style="width:100%;">测试连通性</button>
+          </div>
+        </div>
+        <div id="sdoTestResult" style="font-size:12px; color:var(--text-muted); line-height:1.5;"></div>
+      </div>
+
       <div class="toggle-row" id="toggleAutoUpdate">
         <div>
           <div class="toggle-label">启用自动更新壁纸</div>
@@ -1368,6 +1404,10 @@ body:not(.pywebview) .window-controls {
         </div>
         <div class="toggle-switch"></div>
       </div>
+
+      <div class="form-group" style="margin-top: 8px;">
+        <button class="btn btn-ghost" id="btnViewLogs" style="width:100%;">查看运行日志</button>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" id="cancelSettings">取消</button>
@@ -1385,7 +1425,7 @@ body:not(.pywebview) .window-controls {
     </div>
     <div class="modal-body">
       <div class="help-text">
-        <h3>Live Earth Wallpaper — 卫星壁纸</h3>
+        <h3>RealEarth — 真实地球</h3>
         <p>三大数据源模式，点击顶部标签切换：</p>
 
         <h3>天文图片 — NASA APOD</h3>
@@ -1450,6 +1490,41 @@ body:not(.pywebview) .window-controls {
   </div>
 </div>
 
+<!-- ===== LOG VIEWER MODAL ===== -->
+<div class="modal-overlay" id="logModal" style="display:none;">
+  <div class="modal" style="max-width: 780px; max-height: 85vh;">
+    <div class="modal-header">
+      <div class="modal-title">运行日志</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <select class="form-input" id="logFileSelect" style="width:160px; padding:2px 8px; font-size:12px;">
+          <option value="app.log">当前日志</option>
+        </select>
+        <button class="btn btn-ghost small" id="btnRefreshLogs">刷新</button>
+        <button class="modal-close" id="closeLogModal">&times;</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding: 0;">
+      <pre id="logContent" style="
+        margin:0; padding: var(--space-4);
+        background: var(--void-900);
+        color: var(--text-secondary);
+        font-family: 'Sarasa Mono SC', 'Cascadia Code', 'Fira Code', monospace;
+        font-size: 11px;
+        line-height: 1.6;
+        max-height: 55vh;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+      ">加载中...</pre>
+    </div>
+    <div class="modal-footer">
+      <span style="font-size:11px; color: var(--text-muted);" id="logInfo"></span>
+      <button class="btn btn-ghost" id="closeLogBtn">关闭</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 /* ============================================================
@@ -1489,6 +1564,52 @@ async function api(path, options = {}) {
     throw new Error(err.error || `HTTP ${res.status}`);
   }
   return res.json();
+}
+
+// ----- Preview Image Renderer -----
+function setPreviewImage(placeholderSel, url) {
+  const el = document.querySelector(placeholderSel);
+  if (!el) return;
+  if (url) {
+    el.style.backgroundImage = `url("${url}")`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.style.backgroundRepeat = 'no-repeat';
+  } else {
+    el.style.backgroundImage = '';
+    el.style.backgroundSize = '';
+    el.style.backgroundPosition = '';
+    el.style.backgroundRepeat = '';
+  }
+}
+
+// ----- Time & Watermark Helpers -----
+function formatLocalTime(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// 从 config 读取水印设置（带默认值）
+function getWmSettings() {
+  const c = state.config || {};
+  return {
+    font_size: c.wm_font_size || 0,
+    font_family: c.wm_font_family || 'msyh',
+    position: c.wm_position || 'top_right',
+    show_sys_time: c.wm_show_sys_time !== false,
+  };
+}
+
+// 生成 watermark-and-set 请求体（合并水印设置）
+function wmPayload(base) {
+  const wm = getWmSettings();
+  return {
+    ...base,
+    font_size: wm.font_size || undefined,
+    font_family: wm.font_family,
+    position: wm.position,
+    show_sys_time: wm.show_sys_time,
+  };
 }
 
 // ----- Status Bar -----
@@ -1593,6 +1714,7 @@ function renderApodPreview() {
     $('#apodDate').textContent = img.date || '';
     $('#apodCopyright').textContent = img.copyright ? '© ' + img.copyright : '';
     $('#apodRes').textContent = img.hdurl ? 'HD 可用' : 'SD';
+    setPreviewImage('#panelApod .preview-placeholder', img.preview_url || img.hdurl || img.url || null);
   } else {
     $('#apodEmpty').style.display = 'flex';
     $('#apodOverlay').style.display = 'none';
@@ -1668,13 +1790,13 @@ async function setApodWallpaper() {
     const catName = img.category_name || '';
     await api('/api/wallpaper/watermark-and-set', {
       method: 'POST',
-      body: JSON.stringify({
+      body: JSON.stringify(wmPayload({
         path: dl.path,
         left_text: '来源: NASA 每日天文图片 (APOD)',
         right_text: `${img.date} | ${img.title}`,
         output_key: `apod_${img.date}`,
         style: style,
-      }),
+      })),
     });
     setStatus('壁纸已设置 | ' + img.title, 'ok');
   } catch (e) {
@@ -1705,6 +1827,7 @@ async function fetchSatellite() {
     const now = new Date();
     $('#satTime').textContent = now.toISOString().replace('T', ' ').substring(0, 16) + ' UTC+8';
     $('#satRes').textContent = size + 'px';
+    setPreviewImage('#panelSat .preview-placeholder', data.url || null);
 
     setStatus('卫星影像已更新 | ' + (data.satellite_name || satId), 'ok');
   } catch (e) {
@@ -1725,13 +1848,13 @@ async function setSatWallpaper() {
     const style = state.config?.wallpaper_style || 'fill';
     await api('/api/wallpaper/watermark-and-set', {
       method: 'POST',
-      body: JSON.stringify({
+      body: JSON.stringify(wmPayload({
         path: state.lastSatPath,
         left_text: '来源: ' + (satId === 'himawari' ? 'Himawari-8 亚太' : satId.toUpperCase()),
-        right_text: new Date().toISOString().replace('T', ' ').substring(0, 16) + ' (UTC+8)',
+        right_text: '影像时间: ' + formatLocalTime(new Date()),
         output_key: 'sat_' + satId,
         style: style,
-      }),
+      })),
     });
     setStatus('卫星壁纸已设置', 'ok');
   } catch (e) {
@@ -1762,6 +1885,7 @@ async function fetchSdo() {
     const now = new Date();
     $('#sdoTime').textContent = 'NASA SDO · ' + now.toISOString().replace('T', ' ').substring(0, 16);
     $('#sdoRes').textContent = '4096 × 4096';
+    setPreviewImage('#panelSdo .preview-placeholder', data.url || null);
 
     setStatus('太阳图像已更新 | ' + (data.band_name || band), 'ok');
   } catch (e) {
@@ -1782,13 +1906,13 @@ async function setSdoWallpaper() {
     const style = state.config?.wallpaper_style || 'fill';
     await api('/api/wallpaper/watermark-and-set', {
       method: 'POST',
-      body: JSON.stringify({
+      body: JSON.stringify(wmPayload({
         path: state.lastSdoPath,
         left_text: '来源: NASA SDO 太阳观测',
-        right_text: '波段: ' + band + ' | ' + new Date().toISOString().replace('T', ' ').substring(0, 16),
+        right_text: '波段: ' + band + ' | ' + formatLocalTime(new Date()),
         output_key: 'sdo_' + band,
         style: style,
-      }),
+      })),
     });
     setStatus('太阳壁纸已设置', 'ok');
   } catch (e) {
@@ -1827,6 +1951,11 @@ async function saveSettings() {
   const hd = $('#toggleHD .toggle-switch').classList.contains('on');
   const autostart = $('#toggleAutostart .toggle-switch').classList.contains('on');
   const apiKey = $('#apiKeyInput').value.trim();
+  const wmFontSize = parseInt($('#wmFontSizeInput').value) || 0;
+  const wmFontFamily = $('#wmFontFamilySelect').value;
+  const wmPosition = $('#wmPositionSelect').value;
+  const wmShowSysTime = $('#wmShowSysTimeToggle').classList.contains('on');
+  const sdoBand = $('#sdoBandSettingSelect').value;
 
   try {
     await api('/api/config', {
@@ -1837,13 +1966,153 @@ async function saveSettings() {
         auto_update: autoUpdate,
         hd: hd,
         autostart: autostart,
+        wm_font_size: wmFontSize,
+        wm_font_family: wmFontFamily,
+        wm_position: wmPosition,
+        wm_show_sys_time: wmShowSysTime,
+        sdo_band: sdoBand,
       }),
     });
-    state.config = { ...state.config, wallpaper_style: wallpaperStyle, auto_update: autoUpdate, hd, autostart };
+    state.config = {
+      ...state.config,
+      wallpaper_style: wallpaperStyle,
+      auto_update: autoUpdate,
+      hd,
+      autostart,
+      wm_font_size: wmFontSize,
+      wm_font_family: wmFontFamily,
+      wm_position: wmPosition,
+      wm_show_sys_time: wmShowSysTime,
+      sdo_band: sdoBand,
+    };
     closeSettings();
     setStatus('设置已保存', 'ok');
   } catch (e) {
     setStatus('保存设置失败: ' + e.message, 'error');
+  }
+}
+
+// ================================================================
+//  SDO 波段 & 连通性测试
+// ================================================================
+const SDO_BAND_COLORS = {
+  '0304': '#e03040',
+  '0171': '#d4a030',
+  '0211': '#e07080',
+  '0193': '#c06030',
+  '0094': '#40c080',
+  '0131': '#40a0d0',
+  '0335': '#c0a040',
+  '1600': '#e0c060',
+  '1700': '#e0a0c0',
+  'HMIIC': '#f0e0c0',
+  'HMIB': '#60a0e0',
+};
+
+async function loadSdoBands() {
+  try {
+    const res = await api('/api/sdo/bands');
+    const bands = res.bands || [];
+
+    // 填充设置面板下拉
+    const sel = $('#sdoBandSettingSelect');
+    if (sel) {
+      sel.innerHTML = '';
+      bands.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.key;
+        opt.textContent = b.name;
+        sel.appendChild(opt);
+      });
+      if (state.config && state.config.sdo_band) {
+        sel.value = state.config.sdo_band;
+      }
+    }
+
+    // 填充侧边栏波段选择器
+    const group = $('#sdoBandGroup');
+    if (group) {
+      group.innerHTML = '';
+      const defaultBand = (state.config && state.config.sdo_band) || '0304';
+      bands.forEach(b => {
+        const item = document.createElement('div');
+        item.className = 'radio-item' + (b.key === defaultBand ? ' selected' : '');
+        item.dataset.value = b.key;
+        item.innerHTML = `<span class="band-swatch" style="background:${SDO_BAND_COLORS[b.key] || '#888'}"></span>${b.name}`;
+        item.addEventListener('click', () => {
+          group.querySelectorAll('.radio-item').forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+        });
+        group.appendChild(item);
+      });
+    }
+  } catch (e) {
+    console.warn('Load SDO bands failed:', e.message);
+  }
+}
+
+async function testSdoConnectivity() {
+  const btn = $('#btnTestSdo');
+  const resultEl = $('#sdoTestResult');
+  if (btn) btn.disabled = true;
+  if (resultEl) resultEl.textContent = '正在测试 NASA SDO 连通性...';
+  try {
+    const res = await api('/api/sdo/test', { method: 'POST', body: JSON.stringify({}) });
+    const results = res.results || [];
+    const okCount = results.filter(r => r.ok).length;
+    const lines = results.map(r =>
+      (r.ok ? '✓' : '✗') + ' ' + r.name + (r.latency_ms != null ? ' (' + r.latency_ms + 'ms)' : ' 失败')
+    );
+    const summary = `连通性测试完成：${okCount}/${results.length} 个波段可用\n` + lines.join('\n');
+    if (resultEl) resultEl.textContent = summary;
+  } catch (e) {
+    if (resultEl) resultEl.textContent = '测试失败: ' + e.message;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ================================================================
+//  日志查看器
+// ================================================================
+async function openLogViewer() {
+  closeSettings(); // 关闭设置面板
+  $('#logModal').style.display = 'flex';
+  await loadLogFiles();
+  await loadLogContent();
+}
+function closeLogViewer() {
+  $('#logModal').style.display = 'none';
+}
+async function loadLogFiles() {
+  try {
+    const res = await api('/api/logs/list');
+    const sel = $('#logFileSelect');
+    sel.innerHTML = '';
+    (res.logs || []).forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.name;
+      const kb = (f.size / 1024).toFixed(1);
+      opt.textContent = f.name + ' (' + kb + ' KB)';
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    console.error('Load log files failed:', e);
+  }
+}
+async function loadLogContent() {
+  const file = $('#logFileSelect').value;
+  $('#logContent').textContent = '加载中...';
+  try {
+    const res = await api('/api/logs/read?file=' + encodeURIComponent(file) + '&lines=500');
+    if (res.ok) {
+      $('#logContent').textContent = res.content || '(日志为空)';
+      $('#logInfo').textContent = '共 ' + res.total_lines + ' 行，显示最新 ' + (res.content ? res.content.split('\n').length - 1 : 0) + ' 行';
+    } else {
+      $('#logContent').textContent = '加载失败: ' + (res.error || '未知错误');
+    }
+  } catch (e) {
+    $('#logContent').textContent = '加载失败: ' + e.message;
   }
 }
 
@@ -1869,18 +2138,24 @@ function setupRadioGroup(containerId, onChange) {
 }
 
 // ---- Frameless Window Controls ----
-function initWindowControls() {
+let _winControlsBound = false;
+
+function bindWindowControls() {
+  if (_winControlsBound) return;
   const winControls = document.getElementById('windowControls');
   const hasApi = window.pywebview && window.pywebview.api;
 
   if (!hasApi) {
-    // 浏览器环境：隐藏窗口控制按钮
+    // 无 pywebview API（浏览器环境）：隐藏窗口控制按钮
     if (winControls) winControls.style.display = 'none';
     return;
   }
 
+  _winControlsBound = true;
+
   // 标记 body 为 pywebview 环境（供 CSS 使用）
   document.body.classList.add('pywebview');
+  if (winControls) winControls.style.display = '';
 
   // 阻止 header 内交互元素的 mousedown 冒泡，避免误触发 pywebview 拖动
   document.querySelectorAll('.header button, .header select, .header input, .header a').forEach(el => {
@@ -1925,6 +2200,15 @@ function initWindowControls() {
   }
 }
 
+function initWindowControls() {
+  // 立即尝试（可能 API 已就绪）
+  bindWindowControls();
+  // pywebview 5+ 会在 API 注入完成后触发 pywebviewready 事件
+  window.addEventListener('pywebviewready', () => {
+    bindWindowControls();
+  });
+}
+
 // ================================================================
 //  INITIALIZATION
 // ================================================================
@@ -1953,9 +2237,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (state.config.autostart !== undefined) {
       $('#toggleAutostart .toggle-switch').classList.toggle('on', state.config.autostart);
     }
+    // 水印设置
+    if (state.config.wm_font_size !== undefined) {
+      $('#wmFontSizeInput').value = state.config.wm_font_size;
+    }
+    if (state.config.wm_font_family) {
+      $('#wmFontFamilySelect').value = state.config.wm_font_family;
+    }
+    if (state.config.wm_position) {
+      $('#wmPositionSelect').value = state.config.wm_position;
+    }
+    if (state.config.wm_show_sys_time !== undefined) {
+      $('#wmShowSysTimeToggle').classList.toggle('on', state.config.wm_show_sys_time);
+    }
   } catch (e) {
     console.warn('Config load failed, using defaults:', e.message);
   }
+
+  // 加载 SDO 波段列表到设置面板
+  await loadSdoBands();
 
   // Source tabs
   $$('.source-tab').forEach(tab => {
@@ -1989,6 +2289,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#closeSettings').addEventListener('click', closeSettings);
   $('#cancelSettings').addEventListener('click', closeSettings);
   $('#saveSettings').addEventListener('click', saveSettings);
+  $('#btnTestSdo').addEventListener('click', testSdoConnectivity);
+
+  // Log viewer
+  $('#btnViewLogs').addEventListener('click', openLogViewer);
+  $('#closeLogModal').addEventListener('click', closeLogViewer);
+  $('#closeLogBtn').addEventListener('click', closeLogViewer);
+  $('#btnRefreshLogs').addEventListener('click', () => { loadLogFiles(); loadLogContent(); });
+  $('#logFileSelect').addEventListener('change', loadLogContent);
 
   // Help
   $('#btnHelp').addEventListener('click', openHelp);
@@ -2008,6 +2316,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const sw = row.querySelector('.toggle-switch');
       sw.classList.toggle('on');
     });
+  });
+
+  // 水印"显示系统时间"开关
+  $('#wmShowSysTimeToggle').addEventListener('click', () => {
+    $('#wmShowSysTimeToggle').classList.toggle('on');
   });
 
   // Style pills
@@ -2030,7 +2343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (e.key === 'ArrowLeft') navPrev();
       if (e.key === 'ArrowRight') navNext();
     }
-    if (e.key === 'Escape') { closeSettings(); closeHelp(); }
+    if (e.key === 'Escape') { closeSettings(); closeHelp(); closeLogViewer(); }
     if (e.key === '1') switchSource('apod');
     if (e.key === '2') switchSource('satellite');
     if (e.key === '3') switchSource('sdo');
