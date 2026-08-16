@@ -1209,7 +1209,11 @@ class NASAApp:
             nw, nh = int(iw * ratio), int(ih * ratio)
             pil_img = pil_img.resize((nw, nh), Image.LANCZOS)
             self.photo_ref = ImageTk.PhotoImage(pil_img)
-            label.config(image=self.photo_ref, text="")
+            # CosmicCanvas 用 set_image，避免 text="" 触发 delete("all")
+            if isinstance(label, CosmicCanvas):
+                label.set_image(self.photo_ref)
+            else:
+                label.config(image=self.photo_ref, text="")
             if info_label and self.current_image:
                 img = self.current_image
                 info = f"📅 {img.date}    📛 {img.title}"
@@ -1234,7 +1238,11 @@ class NASAApp:
             nw, nh = int(iw * ratio), int(ih * ratio)
             pil_img = pil_img.resize((nw, nh), Image.LANCZOS)
             self._prev_photo = ImageTk.PhotoImage(pil_img)
-            label.config(image=self._prev_photo, text="")
+            # CosmicCanvas 用 set_image，避免 text="" 触发 delete("all")
+            if isinstance(label, CosmicCanvas):
+                label.set_image(self._prev_photo)
+            else:
+                label.config(image=self._prev_photo, text="")
             if status_label:
                 now = datetime.now()
                 status_label.config(
