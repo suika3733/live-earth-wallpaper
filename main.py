@@ -158,114 +158,37 @@ class CompatLabel(ctk.CTkLabel):
 
 # ========== 宇宙渐变占位图（Canvas 自绘，还原 HTML 原型预览空状态） ==========
 class CosmicCanvas(tk.Canvas):
-    """用多层半透明椭圆模拟 radial gradient，绘制宇宙主题占位图。"""
+    """预览区画布：纯黑背景 + 白色文字提示。"""
     def __init__(self, parent, theme="apod", **kw):
-        super().__init__(parent, bg=BG_CARD, highlightthickness=0, **kw)
+        super().__init__(parent, bg="black", highlightthickness=0, **kw)
         self._theme = theme
         self._empty_text = {
             "apod": "选择分类浏览 NASA 每日天文精选",
-            "sat":  "选择卫星后获取最新地球影像",
+            "sat":  "请选择卫星后获取最新影像",
             "fy4":  "获取风云四号 FY-4B 真彩色影像",
             "sdo":  "选择波段后获取最新太阳图像",
         }.get(theme, "")
-        self._accent = {
-            "apod": APOD_ACCENT, "sat": SAT_ACCENT,
-            "fy4": FY4_ACCENT, "sdo": SDO_ACCENT,
-        }.get(theme, FG_TEXT)
         self.bind("<Configure>", self._on_resize)
         self._drawn = False
+        # 初始绘制（延迟确保尺寸已确定）
+        self.after(100, self._draw)
 
     def _on_resize(self, event=None):
         self.after(50, self._draw)
 
     def _draw(self):
+        w = self.winfo_width()
+        h = self.winfo_height()
+        if w < 10 or h < 10:
+            # 尺寸未就绪，延迟重试
+            self.after(100, self._draw)
+            return
         self.delete("all")
-        w = self.winfo_width() or 600
-        h = self.winfo_height() or 400
-        t = self._theme
-
-        if t == "apod":
-            self._draw_apod(w, h)
-        elif t == "sat":
-            self._draw_sat(w, h)
-        elif t == "fy4":
-            self._draw_fy4(w, h)
-        elif t == "sdo":
-            self._draw_sdo(w, h)
-
-        # 中央文字
-        self.create_text(w // 2, h // 2 - 20, text="✦", fill=self._accent,
-                         font=(FONT_FAMILY[0], 28))
-        self.create_text(w // 2, h // 2 + 20, text=self._empty_text,
-                         fill=self._accent, font=(FONT_FAMILY[0], 14))
-
-    def _draw_apod(self, w, h):
-        self.create_rectangle(0, 0, w, h, fill="#0a0820", outline="")
-        self.create_oval(w*0.1, h*0.1, w*0.7, h*0.6, fill="#1a1040", outline="")
-        self.create_oval(w*0.5, h*0.4, w*0.9, h*0.9, fill="#1a0a10", outline="")
-        self.create_oval(w*0.05, h*0.5, w*0.5, h*0.9, fill="#0a1a2e", outline="")
-        self.create_oval(w*0.35, h*0.35, w*0.55, h*0.55, fill="#1a1540", outline="")
-        stars = [(0.15,0.2,1.5),(0.25,0.5,1),(0.6,0.3,1.2),(0.8,0.7,1),
-                 (0.4,0.8,1.5),(0.9,0.15,1.2),(0.55,0.55,1),(0.35,0.35,0.8),
-                 (0.7,0.2,1),(0.2,0.85,0.8),(0.85,0.5,1.2)]
-        for sx, sy, sr in stars:
-            self.create_oval(w*sx-sr, h*sy-sr, w*sx+sr, h*sy+sr, fill="white", outline="")
-        for i in range(5):
-            a = 30 - i * 5
-            c = f"#{a:02x}{20:02x}{60:02x}"
-            self.create_oval(w*0.3+i*5, h*0.3+i*5, w*0.6-i*5, h*0.5-i*5, fill=c, outline="")
-
-    def _draw_sat(self, w, h):
-        self.create_rectangle(0, 0, w, h, fill="#050a14", outline="")
-        cx, cy = w // 2, h // 2
-        r = min(w, h) * 0.28
-        self.create_oval(cx-r*1.4, cy-r*1.4, cx+r*1.4, cy+r*1.4, fill="#081428", outline="")
-        self.create_oval(cx-r*1.3, cy-r*1.3, cx+r*1.3, cy+r*1.3, fill="#0a1a2e", outline="")
-        self.create_oval(cx-r, cy-r, cx+r, cy+r, fill="#0d2240", outline="")
-        self.create_oval(cx-r*0.92, cy-r*0.92, cx+r*0.88, cy+r*0.88, fill="#122d4d", outline="")
-        self.create_oval(cx-r*0.85, cy-r*0.85, cx+r*0.82, cy+r*0.82, fill="#1a3a5c", outline="")
-        self.create_oval(cx-r*0.75, cy-r*0.75, cx+r*0.72, cy+r*0.72, fill="#1e4a70", outline="")
-        self.create_oval(cx-r*0.65, cy-r*0.65, cx+r*0.62, cy+r*0.62, fill="#2d8cf0", outline="")
-        for dx, dy, drx, dry in [(-0.12,-0.08,0.2,0.14),(0.08,-0.06,0.16,0.1),
-                                 (-0.06,0.12,0.22,0.15),(0.18,0.08,0.12,0.08),
-                                 (0.0,0.0,0.1,0.08),(-0.18,0.05,0.08,0.06)]:
-            self.create_oval(cx+dx*r-drx*r, cy+dy*r-dry*r,
-                             cx+dx*r+drx*r, cy+dy*r+dry*r, fill="#4ECCA3", outline="")
-
-    def _draw_fy4(self, w, h):
-        self.create_rectangle(0, 0, w, h, fill="#080505", outline="")
-        cx, cy = w // 2, h // 2
-        r = min(w, h) * 0.28
-        self.create_oval(cx-r*1.4, cy-r*1.4, cx+r*1.4, cy+r*1.4, fill="#120808", outline="")
-        self.create_oval(cx-r*1.3, cy-r*1.3, cx+r*1.3, cy+r*1.3, fill="#1a0a0a", outline="")
-        self.create_oval(cx-r, cy-r, cx+r, cy+r, fill="#0d2018", outline="")
-        self.create_oval(cx-r*0.92, cy-r*0.92, cx+r*0.88, cy+r*0.88, fill="#142e20", outline="")
-        self.create_oval(cx-r*0.85, cy-r*0.85, cx+r*0.82, cy+r*0.82, fill="#1a3528", outline="")
-        self.create_oval(cx-r*0.75, cy-r*0.75, cx+r*0.72, cy+r*0.72, fill="#224a35", outline="")
-        self.create_oval(cx-r*0.65, cy-r*0.65, cx+r*0.62, cy+r*0.62, fill="#2a5040", outline="")
-        for dx, dy, drx, dry in [(-0.08,-0.12,0.22,0.15),(0.12,-0.04,0.18,0.1),
-                                 (-0.04,0.1,0.2,0.13),(0.08,0.16,0.16,0.1),
-                                 (0.0,0.0,0.1,0.08),(-0.15,0.08,0.1,0.07)]:
-            self.create_oval(cx+dx*r-drx*r, cy+dy*r-dry*r,
-                             cx+dx*r+drx*r, cy+dy*r+dry*r, fill="#4ECCA3", outline="")
-
-    def _draw_sdo(self, w, h):
-        self.create_rectangle(0, 0, w, h, fill="#080400", outline="")
-        cx, cy = w // 2, h // 2
-        r = min(w, h) * 0.24
-        self.create_oval(cx-r*1.5, cy-r*1.5, cx+r*1.5, cy+r*1.5, fill="#1a0a00", outline="")
-        self.create_oval(cx-r*1.35, cy-r*1.35, cx+r*1.35, cy+r*1.35, fill="#2a1500", outline="")
-        self.create_oval(cx-r*1.2, cy-r*1.2, cx+r*1.2, cy+r*1.2, fill="#4d1a00", outline="")
-        self.create_oval(cx-r, cy-r, cx+r, cy+r, fill="#802200", outline="")
-        self.create_oval(cx-r*0.88, cy-r*0.88, cx+r*0.88, cy+r*0.88, fill="#aa4400", outline="")
-        self.create_oval(cx-r*0.75, cy-r*0.75, cx+r*0.75, cy+r*0.75, fill="#cc6600", outline="")
-        self.create_oval(cx-r*0.6, cy-r*0.6, cx+r*0.6, cy+r*0.6, fill="#e67e00", outline="")
-        self.create_oval(cx-r*0.45, cy-r*0.45, cx+r*0.45, cy+r*0.45, fill="#ff9500", outline="")
-        self.create_oval(cx-r*0.3, cy-r*0.3, cx+r*0.3, cy+r*0.3, fill="#ffcc00", outline="")
-        self.create_oval(cx-r*0.15, cy-r*0.15, cx+r*0.15, cy+r*0.15, fill="#ffe44d", outline="")
-        self.create_oval(cx-r*0.06, cy-r*0.06, cx+r*0.06, cy+r*0.06, fill="#fff8cc", outline="")
-        self.create_oval(cx+r*0.25, cy-r*0.15, cx+r*0.4, cy-r*0.05, fill="#4d1a00", outline="")
-        self.create_oval(cx-r*0.3, cy+r*0.2, cx-r*0.15, cy+r*0.3, fill="#662200", outline="")
+        # 纯黑背景
+        self.create_rectangle(0, 0, w, h, fill="black", outline="")
+        # 中央白色文字
+        self.create_text(w // 2, h // 2, text=self._empty_text,
+                         fill="white", font=(FONT_FAMILY[0], 14))
 
     # 兼容逻辑层的图片/文字设置
     def set_image(self, photo):
@@ -1384,7 +1307,7 @@ class NASAApp:
         self.config["satellite_color"] = color
         save_config(self.config)
         self._update_status(f"⏳ 正在获取 {name} 卫星影像...", color=YELLOW)
-        self.sat_preview.config(text="⏳\n正在获取卫星影像...", fg=FG_DIM)
+        self.sat_preview.set_text("正在获取卫星影像")
         self._update_sat_info()
         threading.Thread(target=self._do_fetch_sat, args=(sat, color, size), daemon=True).start()
 
