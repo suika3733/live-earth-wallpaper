@@ -134,7 +134,7 @@ class ModernButton(tk.Canvas):
 class NASAApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.root.title("Live Earth Wallpaper - 卫星壁纸")
+        self.root.title("RealEarth v5.0 — Cosmic Observatory · 深空观测台")
         self.root.geometry("1300x850")
         self.root.configure(bg=BG_MAIN)
         self.root.minsize(1100, 700)
