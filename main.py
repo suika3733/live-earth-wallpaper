@@ -143,6 +143,161 @@ class ModernButton(tk.Canvas):
         self._draw(self._bg)
 
 
+# ========== 宇宙渐变占位图（Canvas 自绘，还原 HTML 原型预览空状态） ==========
+class CosmicCanvas(tk.Canvas):
+    """用多层半透明椭圆模拟 radial gradient，绘制宇宙主题占位图。"""
+    def __init__(self, parent, theme="apod", **kw):
+        super().__init__(parent, bg=BG_CARD, highlightthickness=0, **kw)
+        self._theme = theme
+        self._empty_text = {
+            "apod": "选择分类浏览 NASA 每日天文精选",
+            "sat":  "选择卫星后获取最新地球影像",
+            "fy4":  "获取风云四号 FY-4B 真彩色影像",
+            "sdo":  "选择波段后获取最新太阳图像",
+        }.get(theme, "")
+        self._accent = {
+            "apod": APOD_ACCENT, "sat": SAT_ACCENT,
+            "fy4": FY4_ACCENT, "sdo": SDO_ACCENT,
+        }.get(theme, FG_TEXT)
+        self.bind("<Configure>", self._on_resize)
+        self._drawn = False
+
+    def _on_resize(self, event=None):
+        self.after(50, self._draw)
+
+    def _draw(self):
+        self.delete("all")
+        w = self.winfo_width() or 600
+        h = self.winfo_height() or 400
+        t = self._theme
+
+        if t == "apod":
+            self._draw_apod(w, h)
+        elif t == "sat":
+            self._draw_sat(w, h)
+        elif t == "fy4":
+            self._draw_fy4(w, h)
+        elif t == "sdo":
+            self._draw_sdo(w, h)
+
+        # 中央文字
+        self.create_text(w // 2, h // 2 - 20, text="✦", fill=self._accent,
+                         font=(FONT_FAMILY[0], 28))
+        self.create_text(w // 2, h // 2 + 20, text=self._empty_text,
+                         fill=self._accent, font=(FONT_FAMILY[0], 14))
+
+    def _draw_apod(self, w, h):
+        # 深空背景
+        self.create_rectangle(0, 0, w, h, fill="#0a0820", outline="")
+        # 星云渐变（多层半透明椭圆，用淡色模拟）
+        for cx, cy, rw, rh, color in [
+            (w * 0.4, h * 0.4, w * 0.35, h * 0.3, "#1a1040"),
+            (w * 0.7, h * 0.6, w * 0.25, h * 0.35, "#1a0a10"),
+            (w * 0.3, h * 0.7, w * 0.3, h * 0.25, "#0a1a2e"),
+            (w * 0.5, h * 0.5, w * 0.2, h * 0.18, "#1a1540"),
+        ]:
+            self.create_oval(cx - rw, cy - rh, cx + rw, cy + rh,
+                             fill=color, outline="")
+        # 星点
+        for sx, sy, sr in [(0.15, 0.2, 1.5), (0.25, 0.5, 1), (0.6, 0.3, 1.2),
+                           (0.8, 0.7, 1), (0.4, 0.8, 1.5), (0.9, 0.15, 1.2),
+                           (0.55, 0.55, 1), (0.35, 0.35, 0.8)]:
+            self.create_oval(w * sx - sr, h * sy - sr, w * sx + sr, h * sy + sr,
+                             fill="white", outline="")
+
+    def _draw_sat(self, w, h):
+        # 深蓝背景
+        self.create_rectangle(0, 0, w, h, fill="#050a14", outline="")
+        cx, cy = w // 2, h // 2
+        r = min(w, h) * 0.28
+        # 外光晕
+        self.create_oval(cx - r * 1.3, cy - r * 1.3, cx + r * 1.3, cy + r * 1.3,
+                         fill="#0a1a2e", outline="")
+        # 地球主体
+        self.create_oval(cx - r, cy - r, cx + r, cy + r,
+                         fill="#0d2240", outline="")
+        self.create_oval(cx - r * 0.9, cy - r * 0.9, cx + r * 0.85, cy + r * 0.85,
+                         fill="#1a3a5c", outline="")
+        self.create_oval(cx - r * 0.7, cy - r * 0.7, cx + r * 0.7, cy + r * 0.7,
+                         fill="#2d8cf0", outline="")
+        # 大陆（绿色斑块）
+        for dx, dy, drx, dry in [(-0.15, -0.1, 0.18, 0.12), (0.1, -0.05, 0.15, 0.1),
+                                 (-0.05, 0.15, 0.2, 0.14), (0.2, 0.1, 0.12, 0.08)]:
+            self.create_oval(cx + dx * r - drx * r, cy + dy * r - dry * r,
+                             cx + dx * r + drx * r, cy + dy * r + dry * r,
+                             fill="#4ECCA3", outline="")
+
+    def _draw_fy4(self, w, h):
+        # 深红棕背景
+        self.create_rectangle(0, 0, w, h, fill="#080505", outline="")
+        cx, cy = w // 2, h // 2
+        r = min(w, h) * 0.28
+        # 外光晕
+        self.create_oval(cx - r * 1.3, cy - r * 1.3, cx + r * 1.3, cy + r * 1.3,
+                         fill="#1a0a0a", outline="")
+        # 地球主体
+        self.create_oval(cx - r, cy - r, cx + r, cy + r,
+                         fill="#0d2018", outline="")
+        self.create_oval(cx - r * 0.9, cy - r * 0.9, cx + r * 0.85, cy + r * 0.85,
+                         fill="#1a3528", outline="")
+        self.create_oval(cx - r * 0.7, cy - r * 0.7, cx + r * 0.7, cy + r * 0.7,
+                         fill="#2a5040", outline="")
+        # 大陆
+        for dx, dy, drx, dry in [(-0.1, -0.15, 0.2, 0.14), (0.15, -0.05, 0.16, 0.1),
+                                 (-0.05, 0.12, 0.18, 0.12), (0.1, 0.18, 0.14, 0.1)]:
+            self.create_oval(cx + dx * r - drx * r, cy + dy * r - dry * r,
+                             cx + dx * r + drx * r, cy + dy * r + dry * r,
+                             fill="#4ECCA3", outline="")
+
+    def _draw_sdo(self, w, h):
+        # 深橙黑背景
+        self.create_rectangle(0, 0, w, h, fill="#080400", outline="")
+        cx, cy = w // 2, h // 2
+        r = min(w, h) * 0.22
+        # 太阳主体（黄橙红多层，从外到内）
+        self.create_oval(cx - r * 1.3, cy - r * 1.3, cx + r * 1.3, cy + r * 1.3,
+                         fill="#2a1500", outline="")
+        self.create_oval(cx - r * 1.1, cy - r * 1.1, cx + r * 1.1, cy + r * 1.1,
+                         fill="#4d1a00", outline="")
+        self.create_oval(cx - r, cy - r, cx + r, cy + r,
+                         fill="#993300", outline="")
+        self.create_oval(cx - r * 0.8, cy - r * 0.8, cx + r * 0.8, cy + r * 0.8,
+                         fill="#CC6600", outline="")
+        self.create_oval(cx - r * 0.6, cy - r * 0.6, cx + r * 0.6, cy + r * 0.6,
+                         fill="#FF8C00", outline="")
+        self.create_oval(cx - r * 0.35, cy - r * 0.35, cx + r * 0.35, cy + r * 0.35,
+                         fill="#FFD700", outline="")
+        self.create_oval(cx - r * 0.15, cy - r * 0.15, cx + r * 0.15, cy + r * 0.15,
+                         fill="#FFF8DC", outline="")
+
+    # 兼容逻辑层的图片/文字设置
+    def set_image(self, photo):
+        """显示 PIL PhotoImage（逻辑层 _load_image/_load_preview 调用）"""
+        self.delete("all")
+        w = self.winfo_width() or 600
+        h = self.winfo_height() or 400
+        self.create_image(w // 2, h // 2, image=photo, anchor="center")
+        self._last_photo = photo  # 保持引用防止 GC
+
+    def set_text(self, text, fg=None):
+        """显示文字空状态（逻辑层 _show_current_image 无图时调用）"""
+        self.delete("all")
+        self._draw()
+        if text and text != self._empty_text:
+            w = self.winfo_width() or 600
+            h = self.winfo_height() or 400
+            self.create_text(w // 2, h // 2 + 50, text=text,
+                             fill=fg or self._accent, font=FONT_CAPTION)
+
+    def config(self, **kw):
+        """兼容 Label.config(image=..., text=..., fg=...) 调用"""
+        if "image" in kw:
+            self.set_image(kw["image"])
+        if "text" in kw:
+            self.set_text(kw.get("text", ""), kw.get("fg"))
+        # 如果只传 fg 没传 text，不处理（避免覆盖图片）
+
+
 # ========== 主应用 ==========
 class NASAApp:
     def __init__(self, root: tk.Tk):
@@ -429,14 +584,12 @@ class NASAApp:
         setattr(self, label_attr, lbl)
         return lbl
 
-    # ---- 通用：预览容器（空状态 + 水印 + 底部信息 + 加载） ----
-    def _preview_container(self, parent, accent, light, empty_text,
-                           preview_attr, status_attr):
+    # ---- 通用：预览容器（Canvas 宇宙渐变占位 + 水印 + 底部信息 + 加载） ----
+    def _preview_container(self, parent, theme, preview_attr, status_attr):
         box = tk.Frame(parent, bg=BG_CARD, highlightbackground=BORDER_SUBTLE_2,
                        highlightthickness=1)
         box.pack(fill="both", expand=True, pady=(0, 10))
-        preview = tk.Label(box, bg=BG_CARD, text=empty_text, fg=accent,
-                           font=(FONT_FAMILY[0], 16), justify="center")
+        preview = CosmicCanvas(box, theme=theme)
         preview.pack(fill="both", expand=True)
         # 右下水印（来源 + 时间，等宽字体）
         watermark = tk.Label(box, bg=BG_CARD, fg=FG_DIM, font=FONT_MICRO,
@@ -517,9 +670,7 @@ class NASAApp:
         right.pack(side="left", fill="both", expand=True)
 
         box, self.apod_preview, _wm, _info = self._preview_container(
-            right, APOD_ACCENT, APOD_LIGHT,
-            "★\n暂无图片，点击「获取历史」拉取 NASA 精选",
-            "apod_preview", "_apod_wm")
+            right, "apod", "apod_preview", "_apod_wm")
         # 底部信息条：apod_info 显示日期/标题（逻辑层 _load_image 写入）
         self.apod_info = _info
 
@@ -617,9 +768,7 @@ class NASAApp:
         right.pack(side="left", fill="both", expand=True)
 
         box, self.sat_preview, self.sat_status, _si = self._preview_container(
-            right, SAT_ACCENT, SAT_LIGHT,
-            "🛰\n选择卫星后点击获取最新影像",
-            "sat_preview", "sat_status")
+            right, "sat", "sat_preview", "sat_status")
         # sat_status = 右上角水印（来源+时间+分辨率，逻辑层 _load_preview 写入）
 
         ctrl = tk.Frame(right, bg=BG_MAIN, height=40)
@@ -714,9 +863,7 @@ class NASAApp:
         right.pack(side="left", fill="both", expand=True)
 
         box, self.fy4_preview, self.fy4_status, _fi = self._preview_container(
-            right, FY4_ACCENT, FY4_LIGHT,
-            "🛰\n点击获取风云四号 FY-4B 真彩色影像",
-            "fy4_preview", "fy4_status")
+            right, "fy4", "fy4_preview", "fy4_status")
         # fy4_status = 右上角水印（逻辑层 _load_preview 写入）
 
         ctrl = tk.Frame(right, bg=BG_MAIN, height=40)
@@ -783,9 +930,7 @@ class NASAApp:
         right.pack(side="left", fill="both", expand=True)
 
         box, self.sdo_preview, self.sdo_status, _di = self._preview_container(
-            right, SDO_ACCENT, SDO_LIGHT,
-            "☀\n选择波段后点击获取最新太阳图像",
-            "sdo_preview", "sdo_status")
+            right, "sdo", "sdo_preview", "sdo_status")
         # sdo_status = 右上角水印（逻辑层 _load_preview 写入）
 
         ctrl = tk.Frame(right, bg=BG_MAIN, height=40)
