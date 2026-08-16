@@ -200,88 +200,72 @@ class CosmicCanvas(tk.Canvas):
                          fill=self._accent, font=(FONT_FAMILY[0], 14))
 
     def _draw_apod(self, w, h):
-        # 深空背景
         self.create_rectangle(0, 0, w, h, fill="#0a0820", outline="")
-        # 星云渐变（多层半透明椭圆，用淡色模拟）
-        for cx, cy, rw, rh, color in [
-            (w * 0.4, h * 0.4, w * 0.35, h * 0.3, "#1a1040"),
-            (w * 0.7, h * 0.6, w * 0.25, h * 0.35, "#1a0a10"),
-            (w * 0.3, h * 0.7, w * 0.3, h * 0.25, "#0a1a2e"),
-            (w * 0.5, h * 0.5, w * 0.2, h * 0.18, "#1a1540"),
-        ]:
-            self.create_oval(cx - rw, cy - rh, cx + rw, cy + rh,
-                             fill=color, outline="")
-        # 星点
-        for sx, sy, sr in [(0.15, 0.2, 1.5), (0.25, 0.5, 1), (0.6, 0.3, 1.2),
-                           (0.8, 0.7, 1), (0.4, 0.8, 1.5), (0.9, 0.15, 1.2),
-                           (0.55, 0.55, 1), (0.35, 0.35, 0.8)]:
-            self.create_oval(w * sx - sr, h * sy - sr, w * sx + sr, h * sy + sr,
-                             fill="white", outline="")
+        self.create_oval(w*0.1, h*0.1, w*0.7, h*0.6, fill="#1a1040", outline="")
+        self.create_oval(w*0.5, h*0.4, w*0.9, h*0.9, fill="#1a0a10", outline="")
+        self.create_oval(w*0.05, h*0.5, w*0.5, h*0.9, fill="#0a1a2e", outline="")
+        self.create_oval(w*0.35, h*0.35, w*0.55, h*0.55, fill="#1a1540", outline="")
+        stars = [(0.15,0.2,1.5),(0.25,0.5,1),(0.6,0.3,1.2),(0.8,0.7,1),
+                 (0.4,0.8,1.5),(0.9,0.15,1.2),(0.55,0.55,1),(0.35,0.35,0.8),
+                 (0.7,0.2,1),(0.2,0.85,0.8),(0.85,0.5,1.2)]
+        for sx, sy, sr in stars:
+            self.create_oval(w*sx-sr, h*sy-sr, w*sx+sr, h*sy+sr, fill="white", outline="")
+        for i in range(5):
+            a = 30 - i * 5
+            c = f"#{a:02x}{20:02x}{60:02x}"
+            self.create_oval(w*0.3+i*5, h*0.3+i*5, w*0.6-i*5, h*0.5-i*5, fill=c, outline="")
 
     def _draw_sat(self, w, h):
-        # 深蓝背景
         self.create_rectangle(0, 0, w, h, fill="#050a14", outline="")
         cx, cy = w // 2, h // 2
         r = min(w, h) * 0.28
-        # 外光晕
-        self.create_oval(cx - r * 1.3, cy - r * 1.3, cx + r * 1.3, cy + r * 1.3,
-                         fill="#0a1a2e", outline="")
-        # 地球主体
-        self.create_oval(cx - r, cy - r, cx + r, cy + r,
-                         fill="#0d2240", outline="")
-        self.create_oval(cx - r * 0.9, cy - r * 0.9, cx + r * 0.85, cy + r * 0.85,
-                         fill="#1a3a5c", outline="")
-        self.create_oval(cx - r * 0.7, cy - r * 0.7, cx + r * 0.7, cy + r * 0.7,
-                         fill="#2d8cf0", outline="")
-        # 大陆（绿色斑块）
-        for dx, dy, drx, dry in [(-0.15, -0.1, 0.18, 0.12), (0.1, -0.05, 0.15, 0.1),
-                                 (-0.05, 0.15, 0.2, 0.14), (0.2, 0.1, 0.12, 0.08)]:
-            self.create_oval(cx + dx * r - drx * r, cy + dy * r - dry * r,
-                             cx + dx * r + drx * r, cy + dy * r + dry * r,
-                             fill="#4ECCA3", outline="")
+        self.create_oval(cx-r*1.4, cy-r*1.4, cx+r*1.4, cy+r*1.4, fill="#081428", outline="")
+        self.create_oval(cx-r*1.3, cy-r*1.3, cx+r*1.3, cy+r*1.3, fill="#0a1a2e", outline="")
+        self.create_oval(cx-r, cy-r, cx+r, cy+r, fill="#0d2240", outline="")
+        self.create_oval(cx-r*0.92, cy-r*0.92, cx+r*0.88, cy+r*0.88, fill="#122d4d", outline="")
+        self.create_oval(cx-r*0.85, cy-r*0.85, cx+r*0.82, cy+r*0.82, fill="#1a3a5c", outline="")
+        self.create_oval(cx-r*0.75, cy-r*0.75, cx+r*0.72, cy+r*0.72, fill="#1e4a70", outline="")
+        self.create_oval(cx-r*0.65, cy-r*0.65, cx+r*0.62, cy+r*0.62, fill="#2d8cf0", outline="")
+        for dx, dy, drx, dry in [(-0.12,-0.08,0.2,0.14),(0.08,-0.06,0.16,0.1),
+                                 (-0.06,0.12,0.22,0.15),(0.18,0.08,0.12,0.08),
+                                 (0.0,0.0,0.1,0.08),(-0.18,0.05,0.08,0.06)]:
+            self.create_oval(cx+dx*r-drx*r, cy+dy*r-dry*r,
+                             cx+dx*r+drx*r, cy+dy*r+dry*r, fill="#4ECCA3", outline="")
 
     def _draw_fy4(self, w, h):
-        # 深红棕背景
         self.create_rectangle(0, 0, w, h, fill="#080505", outline="")
         cx, cy = w // 2, h // 2
         r = min(w, h) * 0.28
-        # 外光晕
-        self.create_oval(cx - r * 1.3, cy - r * 1.3, cx + r * 1.3, cy + r * 1.3,
-                         fill="#1a0a0a", outline="")
-        # 地球主体
-        self.create_oval(cx - r, cy - r, cx + r, cy + r,
-                         fill="#0d2018", outline="")
-        self.create_oval(cx - r * 0.9, cy - r * 0.9, cx + r * 0.85, cy + r * 0.85,
-                         fill="#1a3528", outline="")
-        self.create_oval(cx - r * 0.7, cy - r * 0.7, cx + r * 0.7, cy + r * 0.7,
-                         fill="#2a5040", outline="")
-        # 大陆
-        for dx, dy, drx, dry in [(-0.1, -0.15, 0.2, 0.14), (0.15, -0.05, 0.16, 0.1),
-                                 (-0.05, 0.12, 0.18, 0.12), (0.1, 0.18, 0.14, 0.1)]:
-            self.create_oval(cx + dx * r - drx * r, cy + dy * r - dry * r,
-                             cx + dx * r + drx * r, cy + dy * r + dry * r,
-                             fill="#4ECCA3", outline="")
+        self.create_oval(cx-r*1.4, cy-r*1.4, cx+r*1.4, cy+r*1.4, fill="#120808", outline="")
+        self.create_oval(cx-r*1.3, cy-r*1.3, cx+r*1.3, cy+r*1.3, fill="#1a0a0a", outline="")
+        self.create_oval(cx-r, cy-r, cx+r, cy+r, fill="#0d2018", outline="")
+        self.create_oval(cx-r*0.92, cy-r*0.92, cx+r*0.88, cy+r*0.88, fill="#142e20", outline="")
+        self.create_oval(cx-r*0.85, cy-r*0.85, cx+r*0.82, cy+r*0.82, fill="#1a3528", outline="")
+        self.create_oval(cx-r*0.75, cy-r*0.75, cx+r*0.72, cy+r*0.72, fill="#224a35", outline="")
+        self.create_oval(cx-r*0.65, cy-r*0.65, cx+r*0.62, cy+r*0.62, fill="#2a5040", outline="")
+        for dx, dy, drx, dry in [(-0.08,-0.12,0.22,0.15),(0.12,-0.04,0.18,0.1),
+                                 (-0.04,0.1,0.2,0.13),(0.08,0.16,0.16,0.1),
+                                 (0.0,0.0,0.1,0.08),(-0.15,0.08,0.1,0.07)]:
+            self.create_oval(cx+dx*r-drx*r, cy+dy*r-dry*r,
+                             cx+dx*r+drx*r, cy+dy*r+dry*r, fill="#4ECCA3", outline="")
 
     def _draw_sdo(self, w, h):
-        # 深橙黑背景
         self.create_rectangle(0, 0, w, h, fill="#080400", outline="")
         cx, cy = w // 2, h // 2
-        r = min(w, h) * 0.22
-        # 太阳主体（黄橙红多层，从外到内）
-        self.create_oval(cx - r * 1.3, cy - r * 1.3, cx + r * 1.3, cy + r * 1.3,
-                         fill="#2a1500", outline="")
-        self.create_oval(cx - r * 1.1, cy - r * 1.1, cx + r * 1.1, cy + r * 1.1,
-                         fill="#4d1a00", outline="")
-        self.create_oval(cx - r, cy - r, cx + r, cy + r,
-                         fill="#993300", outline="")
-        self.create_oval(cx - r * 0.8, cy - r * 0.8, cx + r * 0.8, cy + r * 0.8,
-                         fill="#CC6600", outline="")
-        self.create_oval(cx - r * 0.6, cy - r * 0.6, cx + r * 0.6, cy + r * 0.6,
-                         fill="#FF8C00", outline="")
-        self.create_oval(cx - r * 0.35, cy - r * 0.35, cx + r * 0.35, cy + r * 0.35,
-                         fill="#FFD700", outline="")
-        self.create_oval(cx - r * 0.15, cy - r * 0.15, cx + r * 0.15, cy + r * 0.15,
-                         fill="#FFF8DC", outline="")
+        r = min(w, h) * 0.24
+        self.create_oval(cx-r*1.5, cy-r*1.5, cx+r*1.5, cy+r*1.5, fill="#1a0a00", outline="")
+        self.create_oval(cx-r*1.35, cy-r*1.35, cx+r*1.35, cy+r*1.35, fill="#2a1500", outline="")
+        self.create_oval(cx-r*1.2, cy-r*1.2, cx+r*1.2, cy+r*1.2, fill="#4d1a00", outline="")
+        self.create_oval(cx-r, cy-r, cx+r, cy+r, fill="#802200", outline="")
+        self.create_oval(cx-r*0.88, cy-r*0.88, cx+r*0.88, cy+r*0.88, fill="#aa4400", outline="")
+        self.create_oval(cx-r*0.75, cy-r*0.75, cx+r*0.75, cy+r*0.75, fill="#cc6600", outline="")
+        self.create_oval(cx-r*0.6, cy-r*0.6, cx+r*0.6, cy+r*0.6, fill="#e67e00", outline="")
+        self.create_oval(cx-r*0.45, cy-r*0.45, cx+r*0.45, cy+r*0.45, fill="#ff9500", outline="")
+        self.create_oval(cx-r*0.3, cy-r*0.3, cx+r*0.3, cy+r*0.3, fill="#ffcc00", outline="")
+        self.create_oval(cx-r*0.15, cy-r*0.15, cx+r*0.15, cy+r*0.15, fill="#ffe44d", outline="")
+        self.create_oval(cx-r*0.06, cy-r*0.06, cx+r*0.06, cy+r*0.06, fill="#fff8cc", outline="")
+        self.create_oval(cx+r*0.25, cy-r*0.15, cx+r*0.4, cy-r*0.05, fill="#4d1a00", outline="")
+        self.create_oval(cx-r*0.3, cy+r*0.2, cx-r*0.15, cy+r*0.3, fill="#662200", outline="")
 
     # 兼容逻辑层的图片/文字设置
     def set_image(self, photo):
@@ -309,6 +293,220 @@ class CosmicCanvas(tk.Canvas):
         if "text" in kw:
             self.set_text(kw.get("text", ""), kw.get("fg"))
         # 如果只传 fg 没传 text，不处理（避免覆盖图片）
+
+
+# ========== 自定义分类列表（替代 ttk.Treeview，对齐 HTML 原型 .category-list） ==========
+class CategoryList(ctk.CTkScrollableFrame):
+    """深空风格分类列表。兼容 Treeview 的核心接口。"""
+    def __init__(self, parent, accent=APOD_ACCENT, accent_light=APOD_LIGHT,
+                 accent_glow="#1a1040", **kw):
+        super().__init__(parent, fg_color="transparent", corner_radius=0,
+                         scrollbar_button_color=BORDER_DEFAULT,
+                         scrollbar_button_hover_color=BORDER_HOVER,
+                         **kw)
+        self._accent = accent
+        self._accent_light = accent_light
+        self._accent_glow = accent_glow
+        self._items = []
+        self._selected_iid = None
+        self._command = None
+        self._selected_idx = 0
+
+    def bind(self, event, callback):
+        if event == "<<TreeviewSelect>>":
+            self._command = callback
+
+    def insert(self, parent, index, values=(), iid=None):
+        if iid is None:
+            iid = f"I{len(self._items)}"
+        row = ctk.CTkFrame(self, fg_color="transparent", corner_radius=4, height=28)
+        row.pack(fill="x", pady=1)
+        row.pack_propagate(False)
+        name = str(values[0]) if len(values) > 0 else ""
+        count = str(values[1]) if len(values) > 1 else ""
+        nl = ctk.CTkLabel(row, text=name, fg_color="transparent",
+                          text_color=FG_SECONDARY, font=FONT_CAPTION, anchor="w")
+        nl.pack(side="left", padx=(8, 0))
+        cl = ctk.CTkLabel(row, text=count, fg_color="transparent",
+                          text_color=FG_DISABLED, font=(FONT_MONO[0], 10, "bold"))
+        cl.pack(side="right", padx=(0, 8))
+        for w in (row, nl, cl):
+            w.bind("<Enter>", lambda e, r=row: self._on_hover(r))
+            w.bind("<Leave>", lambda e, r=row: self._on_leave(r))
+            w.bind("<Button-1>", lambda e, i=iid: self._on_click(i))
+        self._items.append((iid, row, nl, cl))
+        return iid
+
+    def delete(self, *iids):
+        to_del = set(iids)
+        new_items = []
+        for iid, row, nl, cl in self._items:
+            if iid in to_del:
+                row.destroy()
+            else:
+                new_items.append((iid, row, nl, cl))
+        self._items = new_items
+
+    def get_children(self, parent=""):
+        return [iid for iid, _, _, _ in self._items]
+
+    def selection_set(self, iid):
+        self._clear_selection()
+        self._selected_iid = iid
+        for idx, (item_iid, row, nl, cl) in enumerate(self._items):
+            if item_iid == iid:
+                row.configure(fg_color=self._accent_glow)
+                nl.configure(text_color=self._accent_light)
+                cl.configure(text_color=self._accent)
+                self._selected_idx = idx
+                break
+
+    def selection(self):
+        return (self._selected_iid,) if self._selected_iid else ()
+
+    def index(self, iid):
+        for idx, (item_iid, _, _, _) in enumerate(self._items):
+            if item_iid == iid:
+                return idx
+        return -1
+
+    def see(self, iid):
+        pass
+
+    def _clear_selection(self):
+        for iid, row, nl, cl in self._items:
+            row.configure(fg_color="transparent")
+            nl.configure(text_color=FG_SECONDARY)
+            cl.configure(text_color=FG_DISABLED)
+
+    def _on_hover(self, row):
+        if self._selected_iid is None or row != self._get_selected_row():
+            row.configure(fg_color=BG_CARD)
+
+    def _on_leave(self, row):
+        if row != self._get_selected_row():
+            row.configure(fg_color="transparent")
+
+    def _get_selected_row(self):
+        for iid, row, _, _ in self._items:
+            if iid == self._selected_iid:
+                return row
+        return None
+
+    def _on_click(self, iid):
+        self.selection_set(iid)
+        if self._command:
+            self._command(None)
+
+
+# ========== 信息卡片（对齐 HTML 原型 .info-card） ==========
+class InfoCard(ctk.CTkFrame):
+    """标题 + 键值对行（label/value 两端对齐）。兼容逻辑层 config(text=...) 调用。"""
+    def __init__(self, parent, title="", rows=None,
+                 accent=APOD_ACCENT, **kw):
+        super().__init__(parent, fg_color=BG_CARD, corner_radius=6,
+                         border_width=1, border_color=BORDER_SUBTLE_2, **kw)
+        self._rows = []
+        self._title_lbl = None
+        self._body = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
+        self._body.pack(fill="x", padx=12, pady=(0, 10))
+        if title:
+            self._title_lbl = ctk.CTkLabel(self, text=title, fg_color="transparent",
+                         text_color=FG_SECONDARY, font=(FONT_FAMILY[0], 12, "bold"))
+            self._title_lbl.pack_forget()
+            self._body.pack_forget()
+            self._title_lbl.pack(anchor="w", padx=12, pady=(10, 6))
+            self._body.pack(fill="x", padx=12, pady=(0, 10))
+        if rows:
+            for label, value in rows:
+                self.add_row(label, value)
+
+    def add_row(self, label, value):
+        row = ctk.CTkFrame(self._body, fg_color="transparent", corner_radius=0, height=22)
+        row.pack(fill="x", pady=1)
+        row.pack_propagate(False)
+        ctk.CTkLabel(row, text=label, fg_color="transparent",
+                     text_color=FG_DIM, font=FONT_CAPTION, anchor="w"
+                     ).pack(side="left")
+        ctk.CTkLabel(row, text=value, fg_color="transparent",
+                     text_color=FG_SECONDARY, font=FONT_CAPTION, anchor="e"
+                     ).pack(side="right")
+        self._rows.append((row, label, value))
+
+    def config(self, **kw):
+        if "text" in kw:
+            text = kw["text"]
+            lines = text.split("\n")
+            for row, _, _ in self._rows:
+                row.destroy()
+            self._rows.clear()
+            for line in lines:
+                parts = line.split("   ", 1)
+                if len(parts) == 2:
+                    self.add_row(parts[0].strip(), parts[1].strip())
+                elif line.strip():
+                    self.add_row(line.strip(), "")
+
+
+# ========== 波段列表（对齐 HTML 原型 .band-list） ==========
+class BandList(ctk.CTkScrollableFrame):
+    """SDO 波段列表，带波长标签。"""
+    def __init__(self, parent, bands, variable, accent=SDO_ACCENT,
+                 accent_light=SDO_LIGHT, accent_glow="#2a1500", **kw):
+        super().__init__(parent, fg_color="transparent", corner_radius=0,
+                         scrollbar_button_color=BORDER_DEFAULT,
+                         scrollbar_button_hover_color=BORDER_HOVER,
+                         **kw)
+        self._variable = variable
+        self._accent = accent
+        self._accent_light = accent_light
+        self._accent_glow = accent_glow
+        self._items = []
+        for key, info in bands.items():
+            self._add_band(key, info)
+
+    def _add_band(self, key, info):
+        import re
+        name_str = info.get("name", key)
+        m = re.match(r"(.+?)\s*\(", name_str)
+        wavelength = m.group(1).strip() if m else key
+        row = ctk.CTkFrame(self, fg_color="transparent", corner_radius=4, height=26)
+        row.pack(fill="x", pady=1)
+        row.pack_propagate(False)
+        wl = ctk.CTkLabel(row, text=wavelength,
+                          fg_color="transparent",
+                          text_color=FG_DIM,
+                          font=(FONT_MONO[0], 10),
+                          width=50)
+        wl.pack(side="left", padx=(6, 4))
+        name = ctk.CTkLabel(row, text=info["name"],
+                            fg_color="transparent",
+                            text_color=FG_SECONDARY,
+                            font=FONT_CAPTION, anchor="w")
+        name.pack(side="left", fill="x", expand=True)
+        for w in (row, wl, name):
+            w.bind("<Enter>", lambda e, r=row: r.configure(fg_color=BG_CARD))
+            w.bind("<Leave>", lambda e, r=row, k=key: self._on_leave(r, k))
+            w.bind("<Button-1>", lambda e, k=key: self._select(k))
+        self._items.append((key, row, wl, name))
+        if self._variable.get() == key:
+            self._select(key)
+
+    def _on_leave(self, row, key):
+        if self._variable.get() != key:
+            row.configure(fg_color="transparent")
+
+    def _select(self, key):
+        self._variable.set(key)
+        for k, row, wl, name in self._items:
+            if k == key:
+                row.configure(fg_color=self._accent_glow)
+                wl.configure(text_color=self._accent_light)
+                name.configure(text_color=self._accent_light)
+            else:
+                row.configure(fg_color="transparent")
+                wl.configure(text_color=FG_DIM)
+                name.configure(text_color=FG_SECONDARY)
 
 
 # ========== 主应用 ==========
@@ -572,18 +770,12 @@ class NASAApp:
         ctk.CTkLabel(tbox, text=sub, fg_color="transparent", text_color=FG_DIM,
                      font=FONT_CAPTION, anchor="w").pack(anchor="w")
 
-    # ---- 通用：信息卡片（键值对多行，兼容逻辑层 info_label.config(text=...)） ----
-    def _info_card(self, parent, rows, label_attr):
-        card = ctk.CTkFrame(parent, fg_color=BG_CARD, corner_radius=6,
-                            border_width=1, border_color=BORDER_DEFAULT)
+    # ---- 通用：信息卡片（对齐 HTML 原型 .info-card） ----
+    def _info_card(self, parent, rows, label_attr, title="卫星信息"):
+        card = InfoCard(parent, title=title, rows=rows)
         card.pack(fill="both", expand=True, pady=(4, 0))
-        lines = [f"{label}   {value}" for label, value in rows]
-        lbl = CompatLabel(card, text="\n".join(lines), fg_color="transparent",
-                          text_color=FG_SECONDARY, font=FONT_CAPTION,
-                          justify="left", anchor="nw", wraplength=180)
-        lbl.pack(fill="both", expand=True, padx=10, pady=6)
-        setattr(self, label_attr, lbl)
-        return lbl
+        setattr(self, label_attr, card)
+        return card
 
     # ---- 通用：预览容器（CosmicCanvas 占位 + 水印 + 底部信息） ----
     def _preview_container(self, parent, theme, preview_attr, status_attr):
@@ -638,31 +830,11 @@ class NASAApp:
                      text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
                      ).pack(anchor="w", pady=(0, 6))
 
-        # 分类列表（ttk.Treeview，保留 cat_tree 接口）
-        cat_frame = tk.Frame(left, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT,
-                             highlightthickness=1)
-        cat_frame.pack(fill="both", expand=True)
-        cols = ("category", "count")
-        self.cat_tree = ttk.Treeview(cat_frame, columns=cols, show="headings", height=12)
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure("Treeview", background=BG_INPUT, foreground=FG_SECONDARY,
-                        fieldbackground=BG_INPUT, rowheight=26, font=FONT_CAPTION)
-        style.configure("Treeview.Heading", background=BG_CARD, foreground=FG_DIM,
-                        font=(FONT_FAMILY[0], 10, "bold"))
-        style.map("Treeview", background=[("selected", BG_CARD_HOVER)],
-                  foreground=[("selected", APOD_LIGHT)])
-        style.configure("Vertical.TScrollbar", background=BG_CARD,
-                        troughcolor=BG_MAIN, arrowcolor=FG_DIM)
-        self.cat_tree.heading("category", text="分类")
-        self.cat_tree.heading("count", text="数量")
-        self.cat_tree.column("category", width=140, anchor="w")
-        self.cat_tree.column("count", width=40, anchor="center")
-        self.cat_tree.pack(side="left", fill="both", expand=True)
-        cat_scroll = ttk.Scrollbar(cat_frame, orient="vertical",
-                                   command=self.cat_tree.yview)
-        cat_scroll.pack(side="right", fill="y")
-        self.cat_tree.configure(yscrollcommand=cat_scroll.set)
+        # 分类列表（CategoryList，对齐 HTML 原型 .category-list）
+        self.cat_tree = CategoryList(left, accent=APOD_ACCENT,
+                                     accent_light=APOD_LIGHT,
+                                     accent_glow="#1a1040")
+        self.cat_tree.pack(fill="both", expand=True)
         self.cat_tree.bind("<<TreeviewSelect>>", self._on_cat_select)
 
         self.btn_fetch = ModernButton(left, text="获取历史图片",
@@ -767,7 +939,7 @@ class NASAApp:
         self._info_card(left, [
             ("机构", "-"), ("覆盖区域", "-"), ("更新频率", "每 10 分钟"),
             ("数据源", "CIRA Slider"),
-        ], "sat_info_label")
+        ], "sat_info_label", title="卫星信息")
 
         right = self._preview_area(p)
         box, self.sat_preview, self.sat_status, _si = self._preview_container(
@@ -818,13 +990,18 @@ class NASAApp:
         self._panel_header(left, "🛰", FY4_ACCENT, FY4_LIGHT,
                            "风云四号", "FY-4B 真彩色全圆盘")
 
-        hint = ctk.CTkFrame(left, fg_color="#221010", corner_radius=6,
-                            border_width=1, border_color=FY4_ACCENT)
+        hint = ctk.CTkFrame(left, fg_color="#1a0a0a", corner_radius=6,
+                            border_width=1, border_color="#3D1A1A")
         hint.pack(fill="x", pady=(0, 12))
-        ctk.CTkLabel(hint, text="⚠ 风云四号固定为真彩色\n色彩模式不适用",
+        hint_row = ctk.CTkFrame(hint, fg_color="transparent", corner_radius=0)
+        hint_row.pack(fill="x", padx=10, pady=8)
+        ctk.CTkLabel(hint_row, text="⚠", fg_color="transparent",
+                     text_color=FY4_LIGHT, font=(FONT_FAMILY[0], 14)
+                     ).pack(side="left", padx=(0, 6))
+        ctk.CTkLabel(hint_row, text="风云四号固定为真彩色，色彩模式不适用",
                      fg_color="transparent", text_color=FY4_LIGHT,
-                     font=FONT_CAPTION, justify="left", wraplength=180
-                     ).pack(padx=10, pady=8, fill="x")
+                     font=FONT_CAPTION, justify="left", wraplength=160
+                     ).pack(side="left", fill="x", expand=True)
 
         ctk.CTkLabel(left, text="分辨率", fg_color="transparent",
                      text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
@@ -843,7 +1020,7 @@ class NASAApp:
             ("卫星", "FY-4B"), ("国家", "中国"), ("机构", "NSMC"),
             ("影像类型", "真彩色全圆盘"), ("更新频率", "每 15 分钟"),
             ("时区", "UTC+8 北京时间"),
-        ], "fy4_info_label")
+        ], "fy4_info_label", title="卫星信息")
 
         right = self._preview_area(p)
         box, self.fy4_preview, self.fy4_status, _fi = self._preview_container(
@@ -885,23 +1062,16 @@ class NASAApp:
                      text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
                      ).pack(anchor="w", pady=(0, 6))
 
-        # 波段列表（用 CTkRadioButton 替代 Radiobutton）
-        band_scroll = ctk.CTkScrollableFrame(left, fg_color="transparent",
-                                             corner_radius=0, height=280)
+        # 波段列表（BandList，对齐 HTML 原型 .band-list）
+        band_scroll = BandList(left, SDO_BANDS, self.selected_sdo_band,
+                               accent=SDO_ACCENT, accent_light=SDO_LIGHT,
+                               accent_glow="#2a1500", height=280)
         band_scroll.pack(fill="both", expand=True)
-        self._sdo_radio_buttons = []
-        for key, info in SDO_BANDS.items():
-            rb = ctk.CTkRadioButton(
-                band_scroll, text=f"{info['name']}", variable=self.selected_sdo_band,
-                value=key, fg_color=SDO_ACCENT, hover_color=SDO_LIGHT,
-                text_color=FG_SECONDARY, font=FONT_SMALL)
-            rb.pack(anchor="w", pady=2, padx=4)
-            self._sdo_radio_buttons.append(rb)
 
         self._info_card(left, [
             ("数据源", "NASA SDO"), ("当前波段", "304 Å 色球层"),
             ("更新频率", "15-60 分钟"), ("自动刷新", "每 60 分钟"),
-        ], "sdo_info_label")
+        ], "sdo_info_label", title="观测信息")
 
         right = self._preview_area(p)
         box, self.sdo_preview, self.sdo_status, _di = self._preview_container(
@@ -1180,11 +1350,11 @@ class NASAApp:
         sat = self.selected_satellite.get()
         info = GEOSTATIONARY_SATELLITES.get(sat, {})
         self.sat_info_label.config(
-            text=f"卫星: {info.get('name', sat)}\n\n"
-                 f"数据源\n━━━━━━━━━━\nCIRA RAMMB-Slider\n\n"
-                 f"区域\n━━━━━━━━━━\n{info.get('region', '-')}\n\n"
-                 f"更新频率\n━━━━━━━━━━\n约每 10 分钟\n\n"
-                 f"颜色模式\n━━━━━━━━━━\n自然色/地球色"
+            text=f"卫星   {info.get('name', sat)}\n"
+                 f"数据源   CIRA RAMMB-Slider\n"
+                 f"区域   {info.get('region', '-')}\n"
+                 f"更新频率   约每 10 分钟\n"
+                 f"颜色模式   自然色/地球色"
         )
 
     def _fetch_satellite(self):
@@ -1460,11 +1630,11 @@ class NASAApp:
         except Exception:
             ct_str = "获取中..."
         self.fy4_info_label.config(
-            text=f"卫星: 风云四号 FY-4B\n(FengYun-4B, 中国)\n\n"
-                 f"数据源\n━━━━━━━━━━\n国家卫星气象中心\nNSMC FY-4\n\n"
-                 f"分辨率\n━━━━━━━━━━\n{size} px\n\n"
-                 f"色彩模式\n━━━━━━━━━━\n真彩色（固定）\n\n"
-                 f"最近拍摄\n━━━━━━━━━━\n{ct_str}"
+            text=f"卫星   风云四号 FY-4B\n"
+                 f"数据源   国家卫星气象中心 NSMC\n"
+                 f"分辨率   {size} px\n"
+                 f"色彩模式   真彩色（固定）\n"
+                 f"最近拍摄   {ct_str}"
         )
 
     def _fetch_fy4(self):
