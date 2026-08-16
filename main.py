@@ -1,4 +1,4 @@
-"""Live Earth Wallpaper - 多数据源卫星壁纸软件"""
+"""Live Earth Wallpaper - 多数据源卫星壁纸软件（CustomTkinter v5.0 UI）"""
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import threading
@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from PIL import Image, ImageTk
 import pystray
+import customtkinter as ctk
 
 from config import (
     load_config, save_config, load_metadata, save_metadata,
@@ -104,43 +105,55 @@ FONT_BIG = (FONT_FAMILY[0], 16, "bold")
 FONT_BRAND = (FONT_FAMILY[0], 16, "bold")     # 侧边栏品牌名
 
 
-# ========== 圆角按钮 ==========
-class ModernButton(tk.Canvas):
+# ========== 圆角按钮（CustomTkinter 封装，保留 _bg/_hover_bg/_draw/set_text 接口） ==========
+class ModernButton(ctk.CTkButton):
+    """CustomTkinter 圆角按钮。兼容逻辑层的 _bg/_hover_bg/_draw/set_text 调用。"""
     def __init__(self, parent, text, command=None, width=100, height=32,
                  bg=ACCENT, fg="white", hover_bg=ACCENT_HOVER, font=FONT_BODY, **kw):
-        super().__init__(parent, width=width, height=height, bg=BG_CARD,
-                         highlightthickness=0, cursor="hand2", **kw)
+        super().__init__(
+            parent, text=text, command=command, width=width, height=height,
+            fg_color=bg, hover_color=hover_bg, text_color=fg,
+            corner_radius=6, font=font, border_width=0, **kw)
         self._text = text
-        self._command = command
         self._bg = bg
         self._fg = fg
         self._hover_bg = hover_bg
-        self._font = font
-        self._radius = 6
-        self._draw(self._bg)
-        self.bind("<Enter>", lambda e: self._draw(self._hover_bg))
-        self.bind("<Leave>", lambda e: self._draw(self._bg))
-        self.bind("<Button-1>", self._on_click)
 
-    def _draw(self, color):
-        self.delete("all")
-        w, h = self.winfo_reqwidth(), self.winfo_reqheight()
-        self._round_rect(0, 0, w, h, self._radius, fill=color, outline="")
-        self.create_text(w // 2, h // 2, text=self._text, fill=self._fg, font=self._font)
-
-    def _on_click(self, event):
-        if self._command:
-            self._command()
-
-    def _round_rect(self, x1, y1, x2, y2, r, **kw):
-        pts = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r,
-               x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
-               x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
-        return self.create_polygon(pts, smooth=True, **kw)
+    def _draw(self, color=None, no_color_updates=False):
+        """兼容 CTk 基类调用（_draw() 与 _draw(no_color_updates=True)）与逻辑层 _draw(color)。"""
+        if color is not None:
+            self.configure(fg_color=color)
+            return
+        super()._draw(no_color_updates=no_color_updates)
 
     def set_text(self, text):
         self._text = text
-        self._draw(self._bg)
+        self.configure(text=text)
+
+
+# ========== 兼容 Label（CustomTkinter 封装，兼容 config(text/fg/image)） ==========
+class CompatLabel(ctk.CTkLabel):
+    """CustomTkinter 标签。把逻辑层的 config(text=, fg=, image=) 转为 CTk 语法。"""
+    def __init__(self, parent, text="", fg_color=BG_CARD, text_color=FG_TEXT,
+                 font=FONT_CAPTION, **kw):
+        super().__init__(parent, text=text, fg_color=fg_color, text_color=text_color,
+                         font=font, **kw)
+        self._photo = None
+
+    def config(self, **kw):
+        mapped = {("text_color" if k == "fg" else k): v for k, v in kw.items()
+                  if k in ("text", "fg", "text_color", "bg", "fg_color",
+                           "font", "justify", "anchor", "wraplength", "padx",
+                           "pady", "image", "compound", "width", "height")}
+        if "image" in mapped:
+            mapped.pop("image")  # CTkLabel 无 image 属性，走下方引用保留
+        if mapped:
+            super().configure(**mapped)
+        if "image" in kw and kw["image"] is not None:
+            self._photo = kw["image"]  # 保持引用防 GC
+
+    def configure(self, **kw):
+        self.config(**kw)
 
 
 # ========== 宇宙渐变占位图（Canvas 自绘，还原 HTML 原型预览空状态） ==========
@@ -357,67 +370,64 @@ class NASAApp:
         self._check_auto_startup()
 
 
-    # ========== UI 构建（v5.0 "Cosmic Observatory" 深空观测台 · 还原 HTML 原型三栏布局） ==========
-    # ---- 辅助：圆角卡片/容器 ----
-    def _rounded_rect(self, canvas, x1, y1, x2, y2, r, **kw):
-        pts = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r,
-               x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
-               x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
-        return canvas.create_polygon(pts, smooth=True, **kw)
-
+    # ========== UI 构建（CustomTkinter v5.0 "Cosmic Observatory" 深空观测台） ==========
     def _build_ui(self):
+        # 设置 CustomTkinter 外观
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
+
         # =====================================================================
-        #  整体纵向布局：底部状态栏 + 主区（侧边栏 + 内容）
+        #  整体纵向布局：主区 + 底部状态栏
         # =====================================================================
-        self.main_frame = tk.Frame(self.root, bg=BG_MAIN)
+        self.main_frame = ctk.CTkFrame(self.root, fg_color=BG_MAIN, corner_radius=0)
         self.main_frame.pack(fill="both", expand=True)
 
-        # ---- 状态栏（最底层底部，28px，规范 §6.1/§5.7） ----
+        # ---- 状态栏（底部，28px） ----
         self._build_statusbar()
 
         # ---- 主内容区：左侧边栏 + 右侧内容 ----
         self._build_sidebar()
 
-        # ---- 右侧内容：4 个面板（每面板 = 控制面板 + 预览区） ----
+        # ---- 右侧内容：4 个面板 ----
         self._build_panels()
 
     # ---------------------------------------------------------------------
-    #  状态栏（底部 28px：左=模式文字+分隔线+缓存/磁盘，右=调度器脉冲灯）
+    #  状态栏（底部 28px：左=模式文字+分隔线，右=调度器脉冲灯）
     # ---------------------------------------------------------------------
     def _build_statusbar(self):
-        status_frame = tk.Frame(self.main_frame, bg=BG_SURFACE, height=28)
+        status_frame = ctk.CTkFrame(self.main_frame, fg_color=BG_SURFACE,
+                                    corner_radius=0, height=28)
         status_frame.pack(fill="x", side="bottom")
         status_frame.pack_propagate(False)
-        # 顶部细分隔线
-        tk.Frame(status_frame, bg=BORDER_DEFAULT, height=1).pack(fill="x")
 
         # 左侧：模式状态（脉冲绿点 + 文字）
-        left = tk.Frame(status_frame, bg=BG_SURFACE)
+        left = ctk.CTkFrame(status_frame, fg_color="transparent", corner_radius=0)
         left.pack(side="left", fill="y", padx=(16, 0))
         self.status_dot = tk.Canvas(left, width=6, height=6, bg=BG_SURFACE,
                                     highlightthickness=0)
         self.status_dot.pack(side="left", padx=(0, 6))
         self.status_dot.create_oval(0, 0, 6, 6, fill=GREEN, outline="")
-        self.status_bar = tk.Label(left, text="就绪", bg=BG_SURFACE, fg=FG_SECONDARY,
-                                   font=FONT_CAPTION, anchor="w")
+        self.status_bar = CompatLabel(left, text="就绪", fg_color="transparent",
+                                      text_color=FG_SECONDARY, font=FONT_CAPTION)
         self.status_bar.pack(side="left")
 
-        # 分隔线 + 缓存/磁盘信息（占位，逻辑层可后续更新）
+        # 分隔线
         tk.Frame(status_frame, bg=BORDER_DEFAULT, width=1, height=14).pack(
             side="left", padx=12)
 
         # 右侧：调度器运行中 + 脉冲灯
-        right_bar = tk.Frame(status_frame, bg=BG_SURFACE)
+        right_bar = ctk.CTkFrame(status_frame, fg_color="transparent", corner_radius=0)
         right_bar.pack(side="right", padx=16)
-        self.sched_label = tk.Label(right_bar, text="调度器运行中", bg=BG_SURFACE,
-                                    fg=FG_DIM, font=FONT_CAPTION)
+        self.sched_label = CompatLabel(right_bar, text="调度器运行中",
+                                       fg_color="transparent", text_color=FG_DIM,
+                                       font=FONT_CAPTION)
         self.sched_label.pack(side="right", padx=(6, 0))
         self.sched_light = tk.Canvas(right_bar, width=10, height=10, bg=BG_SURFACE,
                                      highlightthickness=0)
         self.sched_light.pack(side="right")
         self.sched_light.create_oval(1, 1, 9, 9, fill=GREEN, outline="")
 
-        # 启动调度器脉冲呼吸动画（纯视觉）
+        # 调度器脉冲呼吸动画（纯视觉）
         self._sched_pulse_on = True
         self._sched_pulse_id = self.root.after(600, self._sched_pulse_tick)
 
@@ -425,212 +435,210 @@ class NASAApp:
     #  侧边栏（220px 固定：品牌区 + 数据源导航 + 底部区 + 版本号）
     # ---------------------------------------------------------------------
     def _build_sidebar(self):
-        sidebar = tk.Frame(self.main_frame, bg=SIDEBAR_BG, width=220)
+        sidebar = ctk.CTkFrame(self.main_frame, fg_color=BG_SIDEBAR, width=220,
+                               corner_radius=0)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
-        # ---- 品牌区（顶部：地球图标 + 名称 + 副标题） ----
-        brand = tk.Frame(sidebar, bg=SIDEBAR_BG)
-        brand.pack(fill="x", padx=20, pady=(18, 0))
+        # ---- 品牌区 ----
+        brand = ctk.CTkFrame(sidebar, fg_color="transparent", corner_radius=0)
+        brand.pack(fill="x", padx=18, pady=(18, 0))
 
-        mark = tk.Frame(brand, bg=SIDEBAR_BG)
+        mark = ctk.CTkFrame(brand, fg_color="transparent", corner_radius=0)
         mark.pack(anchor="w")
-        # 地球图标（径向渐变模拟 —— 用三色圆）
-        globe = tk.Canvas(mark, width=28, height=28, bg=SIDEBAR_BG, highlightthickness=0)
+        globe = tk.Canvas(mark, width=28, height=28, bg=BG_SIDEBAR, highlightthickness=0)
         globe.pack(side="left", padx=(0, 10))
-        globe.create_oval(2, 2, 26, 26, fill="#1565C0", outline="#0D47A1", width=1)
-        globe.create_oval(2, 2, 26, 26, fill="#2D8CF0", outline="")
+        globe.create_oval(2, 2, 26, 26, fill="#2D8CF0", outline="#1565C0", width=1)
         globe.create_arc(4, 4, 24, 24, start=20, extent=140, fill="#4FC3F7", outline="")
-        # 大陆绿块
         globe.create_oval(10, 8, 18, 14, fill="#4ECCA3", outline="")
         globe.create_oval(12, 16, 21, 24, fill="#4ECCA3", outline="")
-        tk.Label(mark, text="RealEarth", bg=SIDEBAR_BG, fg=FG_TEXT,
-                 font=FONT_BRAND).pack(side="left")
-        tk.Label(brand, text="真实地球壁纸", bg=SIDEBAR_BG, fg=FG_DIM,
-                 font=FONT_MICRO).pack(anchor="w", padx=38, pady=(1, 0))
+        ctk.CTkLabel(mark, text="RealEarth", fg_color="transparent",
+                     text_color=FG_TEXT, font=FONT_BRAND).pack(side="left")
+        ctk.CTkLabel(brand, text="真实地球壁纸", fg_color="transparent",
+                     text_color=FG_DIM, font=FONT_MICRO).pack(anchor="w", padx=38, pady=(1, 0))
 
-        # 星场装饰（顶部淡星点 —— 用 Canvas 轻绘）
-        starfield = tk.Canvas(sidebar, width=220, height=70, bg=SIDEBAR_BG,
+        # 星场装饰
+        starfield = tk.Canvas(sidebar, width=220, height=70, bg=BG_SIDEBAR,
                               highlightthickness=0)
         starfield.pack(fill="x", pady=(4, 0))
-        for sx, sy, sr, sa in [(20, 18, 1, 0.5), (60, 30, 1, 0.4), (100, 14, 1, 0.5),
-                               (150, 40, 1, 0.4), (180, 20, 1, 0.5), (40, 50, 1, 0.3),
-                               (200, 55, 1, 0.4)]:
+        for sx, sy, sr in [(20, 18, 1), (60, 30, 1), (100, 14, 1), (150, 40, 1),
+                           (180, 20, 1), (40, 50, 1), (200, 55, 1)]:
             starfield.create_oval(sx, sy, sx + sr * 2, sy + sr * 2,
-                                  fill=f"#{int(255*sa):02x}{int(255*sa):02x}{int(255*sa):02x}",
-                                  outline="")
+                                  fill="#8a8f9e", outline="")
         starfield.create_oval(120, 26, 123, 29, fill=APOD_ACCENT, outline="")
         starfield.create_oval(70, 55, 72, 57, fill=SAT_ACCENT, outline="")
 
         # ---- 数据源区 ----
-        tk.Label(sidebar, text="数据源", bg=SIDEBAR_BG, fg=FG_DISABLED,
-                 font=(FONT_FAMILY[0], 10, "bold")).pack(anchor="w", padx=20, pady=(6, 4))
+        ctk.CTkLabel(sidebar, text="数据源", fg_color="transparent",
+                     text_color=FG_DISABLED, font=(FONT_FAMILY[0], 10, "bold")
+                     ).pack(anchor="w", padx=20, pady=(6, 4))
 
-        nav_list = tk.Frame(sidebar, bg=SIDEBAR_BG)
+        nav_list = ctk.CTkFrame(sidebar, fg_color="transparent", corner_radius=0)
         nav_list.pack(fill="x", padx=8)
 
-        # 4 个数据源导航项（图标 + 名称 + 右侧徽章 + 激活左侧 3px 主题色竖线）
-        self.btn_apod = self._make_nav(nav_list, "🔭", "天文图片", "apod",
+        # 4 个数据源导航项
+        self.btn_apod = self._make_nav(nav_list, "天文图片", "apod",
                                        APOD_ACCENT, "APOD", APOD_LIGHT)
-        self.btn_sat = self._make_nav(nav_list, "🛰", "卫星影像", "satellite",
+        self.btn_sat = self._make_nav(nav_list, "卫星影像", "satellite",
                                       SAT_ACCENT, "6 颗", SAT_LIGHT)
-        self.btn_fy4 = self._make_nav(nav_list, "🇨🇳", "风云四号", "fy4",
+        self.btn_fy4 = self._make_nav(nav_list, "风云四号", "fy4",
                                       FY4_ACCENT, "FY-4B", FY4_LIGHT)
-        self.btn_sdo = self._make_nav(nav_list, "☀", "太阳观测", "sdo",
+        self.btn_sdo = self._make_nav(nav_list, "太阳观测", "sdo",
                                       SDO_ACCENT, "11 波段", SDO_LIGHT)
 
-        # ---- 底部区：分隔线 + 设置 / 使用说明 + 版本号 ----
-        bottom = tk.Frame(sidebar, bg=SIDEBAR_BG)
+        # ---- 底部区 ----
+        bottom = ctk.CTkFrame(sidebar, fg_color="transparent", corner_radius=0)
         bottom.pack(side="bottom", fill="x", padx=8, pady=(6, 10))
         tk.Frame(bottom, bg=BORDER_DEFAULT, height=1).pack(fill="x", padx=12, pady=(0, 6))
 
-        self._make_bottom_nav(bottom, "⚙", "设置", self._show_settings, FG_DIM)
-        self._make_bottom_nav(bottom, "📖", "使用说明", self._show_help, FG_DIM)
+        self._make_bottom_nav(bottom, "⚙  设置", self._show_settings)
+        self._make_bottom_nav(bottom, "📖  使用说明", self._show_help)
 
-        tk.Label(sidebar, text="RealEarth v5.0 · Cosmic Observatory",
-                 bg=SIDEBAR_BG, fg=FG_DISABLED, font=(FONT_FAMILY[0], 9)).pack(
-                     side="bottom", pady=(0, 8))
+        ctk.CTkLabel(sidebar, text="RealEarth v5.0 · Cosmic Observatory",
+                     fg_color="transparent", text_color=FG_DISABLED,
+                     font=(FONT_FAMILY[0], 9)).pack(side="bottom", pady=(0, 8))
 
-    def _make_bottom_nav(self, parent, icon, text, command, fg):
-        btn = tk.Button(parent, text=f"{icon}  {text}", command=command,
-                        bg=SIDEBAR_BG, fg=fg, font=FONT_SMALL,
-                        relief="flat", anchor="w", padx=12, pady=6,
-                        activebackground=SIDEBAR_HOVER, activeforeground=FG_SECONDARY,
-                        cursor="hand2", bd=0)
-        btn.pack(fill="x", pady=1)
+    def _make_bottom_nav(self, parent, text, command):
+        btn = ctk.CTkButton(parent, text=text, command=command,
+                            fg_color="transparent", hover_color=SIDEBAR_HOVER,
+                            text_color=FG_DIM, corner_radius=6,
+                            font=FONT_SMALL, height=34, anchor="w",
+                            border_width=0)
+        btn.pack(fill="x", pady=1, padx=4)
         return btn
 
-    # ========== 侧边栏导航项（v5.0 色彩编码导航，还原 HTML 原型） ==========
-    def _make_nav(self, parent, icon, text, source, accent, badge, light):
-        """创建侧边栏导航项：左侧 3px 主题色指示条 + 图标 + 名称 + 右侧徽章。
-
-        accent: 该数据源主色（激活指示条）
-        badge:  徽章文字（APOD / 6 颗 / FY-4B / 11 波段）
-        light:  图标亮色
-        """
-        row = tk.Frame(parent, bg=SIDEBAR_BG)
+    # ========== 侧边栏导航项（CustomTkinter 色彩编码导航） ==========
+    def _make_nav(self, parent, text, source, accent, badge, light):
+        row = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0)
         row.pack(fill="x", pady=1)
 
-        # 左侧 3px 主题色指示条（激活时显示 + 微光晕近似）
-        indicator = tk.Frame(row, width=3, bg=SIDEBAR_BG)
-        indicator.pack(side="left", fill="y", padx=(0, 6))
+        # 左侧 3px 主题色指示条
+        indicator = ctk.CTkFrame(row, width=3, height=20, fg_color=BG_SIDEBAR,
+                                 corner_radius=2)
+        indicator.pack(side="left", padx=(4, 6))
 
-        # 主按钮（图标 + 文字 + 徽章）
-        btn = tk.Button(row, text=f"{icon}  {text}", command=lambda s=source: self._switch_panel(s),
-                        bg=SIDEBAR_BG, fg=FG_SECONDARY, font=FONT_BODY,
-                        relief="flat", anchor="w", padx=8, pady=9,
-                        activebackground=SIDEBAR_HOVER, activeforeground=FG_TEXT,
-                        cursor="hand2", bd=0)
+        # 主按钮
+        btn = ctk.CTkButton(row, text=text, command=lambda s=source: self._switch_panel(s),
+                            fg_color="transparent", hover_color=SIDEBAR_HOVER,
+                            text_color=FG_SECONDARY, corner_radius=6,
+                            font=FONT_BODY, height=38, anchor="w",
+                            border_width=0)
         btn.pack(side="left", fill="both", expand=True)
 
         # 右侧徽章
-        badge_lbl = tk.Label(row, text=badge, bg=SIDEBAR_BG, fg=light,
-                             font=(FONT_MONO[0], 8, "bold"), padx=6, pady=1)
-        badge_lbl.pack(side="right", padx=(6, 4))
+        badge_lbl = ctk.CTkLabel(row, text=badge, fg_color="transparent",
+                                 text_color=light, font=(FONT_MONO[0], 8, "bold"),
+                                 width=44)
+        badge_lbl.pack(side="right", padx=(0, 8))
 
         # 保存供 _switch_panel 切换状态
         btn._indicator = indicator
         btn._accent = accent
         btn._badge = badge_lbl
         btn._badge_light = light
-        btn._icon = icon
-        btn._text = text
         return btn
 
     # ---------------------------------------------------------------------
-    #  4 个面板（每面板 = 左侧控制面板 210px + 右侧预览区）
+    #  4 个面板
     # ---------------------------------------------------------------------
     def _build_panels(self):
-        body = tk.Frame(self.main_frame, bg=BG_MAIN)
+        body = ctk.CTkFrame(self.main_frame, fg_color=BG_MAIN, corner_radius=0)
         body.pack(side="left", fill="both", expand=True)
 
-        self.panel_apod = tk.Frame(body, bg=BG_MAIN)
-        self.panel_sat = tk.Frame(body, bg=BG_MAIN)
-        self.panel_fy4 = tk.Frame(body, bg=BG_MAIN)
-        self.panel_sdo = tk.Frame(body, bg=BG_MAIN)
+        self.panel_apod = ctk.CTkFrame(body, fg_color=BG_MAIN, corner_radius=0)
+        self.panel_sat = ctk.CTkFrame(body, fg_color=BG_MAIN, corner_radius=0)
+        self.panel_fy4 = ctk.CTkFrame(body, fg_color=BG_MAIN, corner_radius=0)
+        self.panel_sdo = ctk.CTkFrame(body, fg_color=BG_MAIN, corner_radius=0)
 
         self._build_apod_panel()
         self._build_sat_panel()
         self._build_fy4_panel()
         self._build_sdo_panel()
 
-    # ---- 通用：面板头（主题色小图标块 + 标题 + 副标题） ----
+    # ---- 通用：面板头（主题色图标 + 标题 + 副标题） ----
     def _panel_header(self, parent, icon, accent, light, title, sub):
-        hd = tk.Frame(parent, bg=BG_MAIN)
-        hd.pack(fill="x", pady=(0, 12))
-        icon_box = tk.Canvas(hd, width=20, height=20, bg=BG_MAIN, highlightthickness=0)
+        hd = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0)
+        hd.pack(fill="x", pady=(0, 14))
+        icon_box = tk.Canvas(hd, width=20, height=20, bg=BG_SURFACE,
+                             highlightthickness=0)
         icon_box.pack(side="left", padx=(0, 8))
         icon_box.create_oval(2, 2, 18, 18, fill=accent, outline="")
-        # 简化图标：用主题色圆 + 白色符号
         icon_box.create_text(10, 10, text=icon, fill="white",
                              font=(FONT_FAMILY[0], 9, "bold"))
-        tbox = tk.Frame(hd, bg=BG_MAIN)
+        tbox = ctk.CTkFrame(hd, fg_color="transparent", corner_radius=0)
         tbox.pack(side="left")
-        tk.Label(tbox, text=title, bg=BG_MAIN, fg=FG_TEXT, font=FONT_TITLE,
-                 anchor="w").pack(anchor="w")
-        tk.Label(tbox, text=sub, bg=BG_MAIN, fg=FG_DIM, font=FONT_CAPTION,
-                 anchor="w").pack(anchor="w")
+        ctk.CTkLabel(tbox, text=title, fg_color="transparent", text_color=FG_TEXT,
+                     font=FONT_TITLE, anchor="w").pack(anchor="w")
+        ctk.CTkLabel(tbox, text=sub, fg_color="transparent", text_color=FG_DIM,
+                     font=FONT_CAPTION, anchor="w").pack(anchor="w")
 
-    # ---- 通用：信息卡片（单 Label 多行，兼容逻辑层 info_label.config(text=...)） ----
-    def _info_card(self, parent, rows, label_attr, accent=None):
-        card = tk.Frame(parent, bg=BG_CARD, highlightbackground=BORDER_DEFAULT,
-                        highlightthickness=1)
+    # ---- 通用：信息卡片（键值对多行，兼容逻辑层 info_label.config(text=...)） ----
+    def _info_card(self, parent, rows, label_attr):
+        card = ctk.CTkFrame(parent, fg_color=BG_CARD, corner_radius=6,
+                            border_width=1, border_color=BORDER_DEFAULT)
         card.pack(fill="both", expand=True, pady=(4, 0))
-        lines = [f"{label}  {value}" for label, value in rows]
-        lbl = tk.Label(card, text="\n".join(lines), bg=BG_CARD, fg=FG_SECONDARY,
-                       font=FONT_CAPTION, justify="left", anchor="nw",
-                       padx=10, pady=4, wraplength=170)
-        lbl.pack(fill="both", expand=True)
+        lines = [f"{label}   {value}" for label, value in rows]
+        lbl = CompatLabel(card, text="\n".join(lines), fg_color="transparent",
+                          text_color=FG_SECONDARY, font=FONT_CAPTION,
+                          justify="left", anchor="nw", wraplength=180)
+        lbl.pack(fill="both", expand=True, padx=10, pady=6)
         setattr(self, label_attr, lbl)
         return lbl
 
-    # ---- 通用：预览容器（Canvas 宇宙渐变占位 + 水印 + 底部信息 + 加载） ----
+    # ---- 通用：预览容器（CosmicCanvas 占位 + 水印 + 底部信息） ----
     def _preview_container(self, parent, theme, preview_attr, status_attr):
-        box = tk.Frame(parent, bg=BG_CARD, highlightbackground=BORDER_SUBTLE_2,
-                       highlightthickness=1)
+        box = ctk.CTkFrame(parent, fg_color=BG_CARD, corner_radius=10,
+                           border_width=1, border_color=BORDER_SUBTLE_2)
         box.pack(fill="both", expand=True, pady=(0, 10))
         preview = CosmicCanvas(box, theme=theme)
         preview.pack(fill="both", expand=True)
-        # 右下水印（来源 + 时间，等宽字体）
-        watermark = tk.Label(box, bg=BG_CARD, fg=FG_DIM, font=FONT_MICRO,
-                             justify="right")
-        watermark.place(relx=0.98, rely=0.02, anchor="ne")
-        # 底部信息条
-        info_bar = tk.Frame(box, bg=BG_SURFACE)
+        watermark = CompatLabel(box, text="", fg_color="transparent",
+                                text_color=FG_DIM, font=FONT_MICRO, justify="right")
+        watermark.place(relx=0.97, rely=0.02, anchor="ne")
+        info_bar = ctk.CTkFrame(box, fg_color=BG_SURFACE, corner_radius=0)
         info_bar.place(relx=0, rely=1, relwidth=1, anchor="sw")
-        info = tk.Label(info_bar, text="", bg=BG_SURFACE, fg=FG_SECONDARY,
-                        font=FONT_CAPTION, anchor="w", padx=12, pady=5)
-        info.pack(side="left", fill="x")
+        info = CompatLabel(info_bar, text="", fg_color="transparent",
+                           text_color=FG_SECONDARY, font=FONT_CAPTION, anchor="w")
+        info.pack(side="left", fill="x", padx=12, pady=4)
         setattr(self, preview_attr, preview)
         setattr(self, status_attr, watermark)
         return box, preview, watermark, info
 
-    # ---- 通用：面板切换的 content 容器 ----
-    def _content_root(self, parent):
-        """每面板 = 控制面板(左 210px) + 预览区(右 flex)"""
-        wrap = tk.Frame(parent, bg=BG_MAIN)
-        wrap.pack(fill="both", expand=True)
-        return wrap
+    # ---- 通用：控制面板容器（左 210px） ----
+    def _control_panel(self, parent):
+        left = ctk.CTkFrame(parent, fg_color=BG_SURFACE, width=210, corner_radius=0)
+        left.pack(side="left", fill="y")
+        left.pack_propagate(False)
+        return left
+
+    # ---- 通用：预览区容器（右 flex） ----
+    def _preview_area(self, parent):
+        right = ctk.CTkFrame(parent, fg_color=BG_MAIN, corner_radius=0)
+        right.pack(side="left", fill="both", expand=True, padx=16, pady=16)
+        return right
+
+    # ---- 通用：操作栏 ----
+    def _action_bar(self, parent):
+        bar = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0,
+                           height=40)
+        bar.pack(fill="x", side="bottom")
+        bar.pack_propagate(False)
+        return bar
 
     # ========== APOD 面板 ==========
     def _build_apod_panel(self):
         p = self.panel_apod
-        # 内容容器
-        inner = self._content_root(p)
-
-        # 左侧控制面板（210px）
-        left = tk.Frame(inner, bg=BG_SURFACE, width=210)
-        left.pack(side="left", fill="y")
-        tk.Frame(inner, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
-        left.pack_propagate(False)
+        left = self._control_panel(p)
+        tk.Frame(p, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
 
         self._panel_header(left, "★", APOD_ACCENT, APOD_LIGHT,
                            "天文图片", "NASA APOD 每日精选")
 
-        tk.Label(left, text="图片分类", bg=BG_SURFACE, fg=FG_DIM,
-                 font=(FONT_FAMILY[0], 10, "bold")).pack(anchor="w", pady=(0, 4))
+        ctk.CTkLabel(left, text="图片分类", fg_color="transparent",
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     ).pack(anchor="w", pady=(0, 6))
 
-        # 分类列表（用 Treeview，保留 cat_tree 属性供逻辑层使用）
+        # 分类列表（ttk.Treeview，保留 cat_tree 接口）
         cat_frame = tk.Frame(left, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT,
                              highlightthickness=1)
         cat_frame.pack(fill="both", expand=True)
@@ -657,54 +665,42 @@ class NASAApp:
         self.cat_tree.configure(yscrollcommand=cat_scroll.set)
         self.cat_tree.bind("<<TreeviewSelect>>", self._on_cat_select)
 
-        # 获取历史按钮
-        self.btn_fetch = ModernButton(left, text="↓ 获取历史图片",
+        self.btn_fetch = ModernButton(left, text="获取历史图片",
                                       command=self._fetch_history,
                                       width=186, height=34, bg=BG_CARD,
                                       hover_bg=BG_CARD_HOVER, fg=FG_SECONDARY,
                                       font=FONT_SMALL)
         self.btn_fetch.pack(fill="x", pady=(8, 0))
 
-        # 右侧预览区
-        right = tk.Frame(inner, bg=BG_MAIN, padx=16, pady=16)
-        right.pack(side="left", fill="both", expand=True)
-
+        right = self._preview_area(p)
         box, self.apod_preview, _wm, _info = self._preview_container(
             right, "apod", "apod_preview", "_apod_wm")
-        # 底部信息条：apod_info 显示日期/标题（逻辑层 _load_image 写入）
         self.apod_info = _info
 
-        # 底部操作栏
-        ctrl = tk.Frame(right, bg=BG_MAIN, height=40)
-        ctrl.pack(fill="x", side="bottom")
-        ctrl.pack_propagate(False)
-
-        # 分页
-        nav = tk.Frame(ctrl, bg=BG_MAIN)
+        bar = self._action_bar(right)
+        nav = ctk.CTkFrame(bar, fg_color="transparent", corner_radius=0)
         nav.pack(side="left")
         self.btn_prev = ModernButton(nav, text="‹", command=self._prev_image,
-                                     width=32, height=34, bg=BG_CARD,
+                                     width=36, height=34, bg=BG_CARD,
                                      hover_bg=BG_CARD_HOVER, fg=FG_SECONDARY,
                                      font=(FONT_FAMILY[0], 16))
         self.btn_prev.pack(side="left", padx=(0, 4))
-        self.page_label = tk.Label(nav, text="0 / 0", bg=BG_MAIN, fg=FG_SECONDARY,
-                                   font=FONT_MICRO, width=8)
+        self.page_label = CompatLabel(nav, text="0 / 0", fg_color="transparent",
+                                      text_color=FG_SECONDARY, font=FONT_MICRO, width=70)
         self.page_label.pack(side="left", padx=6)
         self.btn_next = ModernButton(nav, text="›", command=self._next_image,
-                                     width=32, height=34, bg=BG_CARD,
+                                     width=36, height=34, bg=BG_CARD,
                                      hover_bg=BG_CARD_HOVER, fg=FG_SECONDARY,
                                      font=(FONT_FAMILY[0], 16))
         self.btn_next.pack(side="left", padx=(4, 0))
 
-        # 更新（成功绿）
-        self.btn_update = ModernButton(ctrl, text="↻ 更新", command=self._update_now,
+        self.btn_update = ModernButton(bar, text="更新", command=self._update_now,
                                        width=72, height=34, bg=GREEN,
                                        hover_bg="#6ee7c5", fg="#0A1A14",
                                        font=FONT_SMALL)
         self.btn_update.pack(side="left", padx=(24, 0))
 
-        # 设为壁纸（CTA 粉，靠右）
-        self.btn_wallpaper = ModernButton(ctrl, text="设为壁纸", command=self._set_wallpaper,
+        self.btn_wallpaper = ModernButton(bar, text="设为壁纸", command=self._set_wallpaper,
                                           width=104, height=34, bg=ACCENT,
                                           hover_bg=ACCENT_HOVER, font=FONT_SMALL)
         self.btn_wallpaper.pack(side="right")
@@ -712,76 +708,78 @@ class NASAApp:
     # ========== 卫星影像面板 ==========
     def _build_sat_panel(self):
         p = self.panel_sat
-        inner = self._content_root(p)
-
-        left = tk.Frame(inner, bg=BG_SURFACE, width=210)
-        left.pack(side="left", fill="y")
-        tk.Frame(inner, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
-        left.pack_propagate(False)
+        left = self._control_panel(p)
+        tk.Frame(p, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
 
         self._panel_header(left, "🛰", SAT_ACCENT, SAT_LIGHT,
                            "卫星影像", "地球静止卫星实时图")
 
-        tk.Label(left, text="选择卫星", bg=BG_SURFACE, fg=FG_DIM,
-                 font=(FONT_FAMILY[0], 10, "bold")).pack(anchor="w", pady=(0, 4))
-        # 卫星下拉（保留 selected_satellite StringVar 与 Combobox 接口：values=key）
+        ctk.CTkLabel(left, text="选择卫星", fg_color="transparent",
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     ).pack(anchor="w", pady=(0, 6))
+
+        # 卫星下拉（CTkOptionMenu，值映射回 key）
         sat_list = list(GEOSTATIONARY_SATELLITES.keys())
         sat_names = [GEOSTATIONARY_SATELLITES[s]["name"] for s in sat_list]
-        self.sat_combo = ttk.Combobox(left, values=sat_names, state="readonly",
-                                      font=(FONT_FAMILY[0], 10))
-        self.sat_combo.pack(fill="x", pady=(0, 8))
         self._sat_name_to_key = dict(zip(sat_names, sat_list))
         self._sat_key_to_name = dict(zip(sat_list, sat_names))
-        # 初始化显示当前卫星中文名
         cur_key = self.selected_satellite.get()
-        self.sat_combo.set(self._sat_key_to_name.get(cur_key, cur_key))
-        # 选择变化时同步 key 到 selected_satellite
-        self.sat_combo.bind("<<ComboboxSelected>>", self._on_sat_combo_selected)
+        cur_name = self._sat_key_to_name.get(cur_key, cur_key)
+        self.sat_combo = ctk.CTkOptionMenu(
+            left, values=sat_names, command=self._on_sat_option_selected,
+            fg_color=BG_INPUT, button_color=BG_INPUT, button_hover_color=BG_CARD_HOVER,
+            text_color=FG_TEXT, dropdown_fg_color=BG_ELEVATED,
+            dropdown_hover_color=BG_CARD_HOVER, dropdown_text_color=FG_TEXT,
+            font=FONT_SMALL, height=34, corner_radius=6)
+        # selected_satellite 始终存 key；显示名在 command 中映射
+        self.sat_combo.set(cur_name)
+        self.sat_combo.pack(fill="x", pady=(0, 10))
 
-        tk.Label(left, text="颜色模式", bg=BG_SURFACE, fg=FG_DIM,
-                 font=(FONT_FAMILY[0], 10, "bold")).pack(anchor="w", pady=(0, 4))
-        seg1 = tk.Frame(left, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT,
-                        highlightthickness=1)
-        seg1.pack(fill="x", pady=(0, 8))
-        self._make_seg(seg1, "颜色", [("自然色", "natural_color"),
-                                      ("地球色", "geocolor")],
-                       self.selected_color, SAT_ACCENT)
+        ctk.CTkLabel(left, text="颜色模式", fg_color="transparent",
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     ).pack(anchor="w", pady=(0, 6))
+        seg1 = ctk.CTkSegmentedButton(left, values=["自然色", "地球色"],
+                                      command=lambda v: self._sync_seg_color(v),
+                                      fg_color=BG_INPUT, selected_color=SAT_ACCENT,
+                                      selected_hover_color=SAT_LIGHT,
+                                      unselected_color=BG_INPUT,
+                                      text_color=FG_SECONDARY,
+                                      font=FONT_SMALL, height=32, corner_radius=6)
+        seg1.pack(fill="x", pady=(0, 10))
+        seg1.set("自然色" if self.selected_color.get() == "natural_color" else "地球色")
+        self._seg1 = seg1
 
-        tk.Label(left, text="分辨率", bg=BG_SURFACE, fg=FG_DIM,
-                 font=(FONT_FAMILY[0], 10, "bold")).pack(anchor="w", pady=(0, 4))
+        ctk.CTkLabel(left, text="分辨率", fg_color="transparent",
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     ).pack(anchor="w", pady=(0, 6))
         self.sat_size_var = tk.StringVar(value="1080")
-        seg2 = tk.Frame(left, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT,
-                        highlightthickness=1)
-        seg2.pack(fill="x", pady=(0, 8))
-        self._make_seg(seg2, "分辨率", [("标准", "688"), ("高清", "1100"),
-                                      ("超清", "2200")],
-                       self.sat_size_var, SAT_ACCENT)
+        seg2 = ctk.CTkSegmentedButton(left, values=["标准", "高清", "超清"],
+                                      command=lambda v: self._sync_seg_val(self.sat_size_var, v, {"标准":"688","高清":"1100","超清":"2200"}),
+                                      fg_color=BG_INPUT, selected_color=SAT_ACCENT,
+                                      selected_hover_color=SAT_LIGHT,
+                                      unselected_color=BG_INPUT,
+                                      text_color=FG_SECONDARY,
+                                      font=FONT_SMALL, height=32, corner_radius=6)
+        seg2.pack(fill="x", pady=(0, 10))
+        seg2.set("高清")
+        self._seg2 = seg2
 
-        # 卫星信息卡片
         self._info_card(left, [
             ("机构", "-"), ("覆盖区域", "-"), ("更新频率", "每 10 分钟"),
             ("数据源", "CIRA Slider"),
         ], "sat_info_label")
 
-        # 右侧预览区
-        right = tk.Frame(inner, bg=BG_MAIN, padx=16, pady=16)
-        right.pack(side="left", fill="both", expand=True)
-
+        right = self._preview_area(p)
         box, self.sat_preview, self.sat_status, _si = self._preview_container(
             right, "sat", "sat_preview", "sat_status")
-        # sat_status = 右上角水印（来源+时间+分辨率，逻辑层 _load_preview 写入）
 
-        ctrl = tk.Frame(right, bg=BG_MAIN, height=40)
-        ctrl.pack(fill="x", side="bottom")
-        ctrl.pack_propagate(False)
-
-        self.btn_sat_fetch = ModernButton(ctrl, text="获取最新影像",
+        bar = self._action_bar(right)
+        self.btn_sat_fetch = ModernButton(bar, text="获取最新影像",
                                           command=self._fetch_satellite,
                                           width=112, height=34, bg=SAT_ACCENT,
                                           hover_bg=SAT_LIGHT, font=FONT_SMALL)
         self.btn_sat_fetch.pack(side="left", padx=(0, 6))
-
-        self.btn_sat_auto = ModernButton(ctrl,
+        self.btn_sat_auto = ModernButton(bar,
             text="自动刷新: 开" if self.sat_auto_refresh else "自动刷新: 关",
             command=self._toggle_sat_auto_refresh,
             width=104, height=34,
@@ -789,69 +787,57 @@ class NASAApp:
             hover_bg="#1a4a3f" if self.sat_auto_refresh else BG_CARD_HOVER,
             fg=GREEN if self.sat_auto_refresh else FG_DIM, font=FONT_SMALL)
         self.btn_sat_auto.pack(side="left", padx=(0, 6))
-
-        self.sat_countdown = tk.Label(ctrl, text="", bg=BG_MAIN, fg=FG_DIM,
-                                      font=FONT_MICRO)
+        self.sat_countdown = CompatLabel(bar, text="", fg_color="transparent",
+                                         text_color=FG_DIM, font=FONT_MICRO)
         self.sat_countdown.pack(side="left", padx=4)
-
-        self.btn_sat_wp = ModernButton(ctrl, text="设为壁纸",
+        self.btn_sat_wp = ModernButton(bar, text="设为壁纸",
                                        command=self._set_sat_wallpaper,
                                        width=104, height=34, bg=ACCENT,
                                        hover_bg=ACCENT_HOVER, font=FONT_SMALL)
         self.btn_sat_wp.pack(side="right")
 
-    def _on_sat_combo_selected(self, event):
-        name = self.sat_combo.get()
+    def _on_sat_option_selected(self, name):
         key = self._sat_name_to_key.get(name)
         if key:
             self.selected_satellite.set(key)
             self._update_sat_info()
 
-    def _make_seg(self, parent, label, options, var, accent):
-        """分段控件（用按钮模拟 RadioButton 组，突出选中项）"""
-        for text, val in options:
-            b = tk.Radiobutton(parent, text=text, variable=var, value=val,
-                               bg=BG_INPUT, fg=FG_SECONDARY, selectcolor=BG_INPUT,
-                               activebackground=BG_INPUT, activeforeground=FG_TEXT,
-                               indicatoron=False, relief="flat", bd=0,
-                               highlightthickness=1, highlightbackground=BG_INPUT,
-                               highlightcolor=accent, font=FONT_SMALL, cursor="hand2")
-            b.pack(side="left", fill="x", expand=True, padx=1, pady=1)
-        # 初始高亮选中的
-        self._refresh_seg(parent, var, accent)
+    def _sync_seg_color(self, v):
+        self.selected_color.set("natural_color" if v == "自然色" else "geocolor")
 
-    def _refresh_seg(self, parent, var, accent):
-        pass  # Radiobutton 选中态由 ttk/indicator 管理，这里不强制刷新颜色
+    def _sync_seg_val(self, var, v, mapping):
+        if v in mapping:
+            var.set(mapping[v])
 
     # ========== 风云四号 FY-4B 面板 ==========
     def _build_fy4_panel(self):
         p = self.panel_fy4
-        inner = self._content_root(p)
-
-        left = tk.Frame(inner, bg=BG_SURFACE, width=210)
-        left.pack(side="left", fill="y")
-        tk.Frame(inner, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
-        left.pack_propagate(False)
+        left = self._control_panel(p)
+        tk.Frame(p, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
 
         self._panel_header(left, "🛰", FY4_ACCENT, FY4_LIGHT,
                            "风云四号", "FY-4B 真彩色全圆盘")
 
-        # 固定真彩色提示（烬红信息卡）
-        hint = tk.Frame(left, bg="#221010", highlightbackground=FY4_ACCENT,
-                        highlightthickness=1)
-        hint.pack(fill="x", pady=(0, 10))
-        tk.Label(hint, text="⚠ 风云四号固定为真彩色，色彩模式不适用",
-                 bg="#221010", fg=FY4_LIGHT, font=FONT_CAPTION, justify="left",
-                 padx=10, pady=8, wraplength=180).pack(fill="x")
+        hint = ctk.CTkFrame(left, fg_color="#221010", corner_radius=6,
+                            border_width=1, border_color=FY4_ACCENT)
+        hint.pack(fill="x", pady=(0, 12))
+        ctk.CTkLabel(hint, text="⚠ 风云四号固定为真彩色\n色彩模式不适用",
+                     fg_color="transparent", text_color=FY4_LIGHT,
+                     font=FONT_CAPTION, justify="left", wraplength=180
+                     ).pack(padx=10, pady=8, fill="x")
 
-        tk.Label(left, text="分辨率", bg=BG_SURFACE, fg=FG_DIM,
-                 font=(FONT_FAMILY[0], 10, "bold")).pack(anchor="w", pady=(0, 4))
-        seg = tk.Frame(left, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT,
-                       highlightthickness=1)
-        seg.pack(fill="x", pady=(0, 8))
-        self._make_seg(seg, "分辨率", [("标准", "1080"), ("高清", "2200"),
-                                     ("超清", "4000")],
-                       self.selected_fy4_size, FY4_ACCENT)
+        ctk.CTkLabel(left, text="分辨率", fg_color="transparent",
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     ).pack(anchor="w", pady=(0, 6))
+        seg = ctk.CTkSegmentedButton(left, values=["标准", "高清", "超清"],
+                                     command=lambda v: self._sync_seg_val(self.selected_fy4_size, v, {"标准":"1080","高清":"2200","超清":"4000"}),
+                                     fg_color=BG_INPUT, selected_color=FY4_ACCENT,
+                                     selected_hover_color=FY4_LIGHT,
+                                     unselected_color=BG_INPUT,
+                                     text_color=FG_SECONDARY,
+                                     font=FONT_SMALL, height=32, corner_radius=6)
+        seg.pack(fill="x", pady=(0, 10))
+        seg.set("高清")
 
         self._info_card(left, [
             ("卫星", "FY-4B"), ("国家", "中国"), ("机构", "NSMC"),
@@ -859,24 +845,17 @@ class NASAApp:
             ("时区", "UTC+8 北京时间"),
         ], "fy4_info_label")
 
-        right = tk.Frame(inner, bg=BG_MAIN, padx=16, pady=16)
-        right.pack(side="left", fill="both", expand=True)
-
+        right = self._preview_area(p)
         box, self.fy4_preview, self.fy4_status, _fi = self._preview_container(
             right, "fy4", "fy4_preview", "fy4_status")
-        # fy4_status = 右上角水印（逻辑层 _load_preview 写入）
 
-        ctrl = tk.Frame(right, bg=BG_MAIN, height=40)
-        ctrl.pack(fill="x", side="bottom")
-        ctrl.pack_propagate(False)
-
-        self.btn_fy4_fetch = ModernButton(ctrl, text="获取最新影像",
+        bar = self._action_bar(right)
+        self.btn_fy4_fetch = ModernButton(bar, text="获取最新影像",
                                           command=self._fetch_fy4,
                                           width=112, height=34, bg=FY4_ACCENT,
                                           hover_bg=FY4_LIGHT, font=FONT_SMALL)
         self.btn_fy4_fetch.pack(side="left", padx=(0, 6))
-
-        self.btn_fy4_auto = ModernButton(ctrl,
+        self.btn_fy4_auto = ModernButton(bar,
             text="自动刷新: 开" if self.fy4_auto_refresh else "自动刷新: 关",
             command=self._toggle_fy4_auto_refresh,
             width=104, height=34,
@@ -884,12 +863,10 @@ class NASAApp:
             hover_bg="#1a4a3f" if self.fy4_auto_refresh else BG_CARD_HOVER,
             fg=GREEN if self.fy4_auto_refresh else FG_DIM, font=FONT_SMALL)
         self.btn_fy4_auto.pack(side="left", padx=(0, 6))
-
-        self.fy4_countdown = tk.Label(ctrl, text="", bg=BG_MAIN, fg=FG_DIM,
-                                      font=FONT_MICRO)
+        self.fy4_countdown = CompatLabel(bar, text="", fg_color="transparent",
+                                         text_color=FG_DIM, font=FONT_MICRO)
         self.fy4_countdown.pack(side="left", padx=4)
-
-        self.btn_fy4_wp = ModernButton(ctrl, text="设为壁纸",
+        self.btn_fy4_wp = ModernButton(bar, text="设为壁纸",
                                        command=self._set_fy4_wallpaper,
                                        width=104, height=34, bg=ACCENT,
                                        hover_bg=ACCENT_HOVER, font=FONT_SMALL)
@@ -898,52 +875,45 @@ class NASAApp:
     # ========== 太阳观测 SDO 面板 ==========
     def _build_sdo_panel(self):
         p = self.panel_sdo
-        inner = self._content_root(p)
-
-        left = tk.Frame(inner, bg=BG_SURFACE, width=210)
-        left.pack(side="left", fill="y")
-        tk.Frame(inner, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
-        left.pack_propagate(False)
+        left = self._control_panel(p)
+        tk.Frame(p, bg=BORDER_DEFAULT, width=1).pack(side="left", fill="y")
 
         self._panel_header(left, "☀", SDO_ACCENT, SDO_LIGHT,
                            "太阳观测", "NASA SDO 太阳动力学天文台")
 
-        tk.Label(left, text="观测波段", bg=BG_SURFACE, fg=FG_DIM,
-                 font=(FONT_FAMILY[0], 10, "bold")).pack(anchor="w", pady=(0, 4))
+        ctk.CTkLabel(left, text="观测波段", fg_color="transparent",
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     ).pack(anchor="w", pady=(0, 6))
 
-        band_frame = tk.Frame(left, bg=BG_SURFACE)
-        band_frame.pack(fill="both", expand=True)
+        # 波段列表（用 CTkRadioButton 替代 Radiobutton）
+        band_scroll = ctk.CTkScrollableFrame(left, fg_color="transparent",
+                                             corner_radius=0, height=280)
+        band_scroll.pack(fill="both", expand=True)
+        self._sdo_radio_buttons = []
         for key, info in SDO_BANDS.items():
-            b = tk.Radiobutton(band_frame, text=f"{info['name']}",
-                               variable=self.selected_sdo_band, value=key,
-                               bg=BG_SURFACE, fg=FG_SECONDARY, selectcolor=BG_SURFACE,
-                               activebackground=BG_SURFACE, activeforeground=SDO_LIGHT,
-                               font=FONT_SMALL, cursor="hand2", anchor="w")
-            b.pack(fill="x", pady=1)
+            rb = ctk.CTkRadioButton(
+                band_scroll, text=f"{info['name']}", variable=self.selected_sdo_band,
+                value=key, fg_color=SDO_ACCENT, hover_color=SDO_LIGHT,
+                text_color=FG_SECONDARY, font=FONT_SMALL)
+            rb.pack(anchor="w", pady=2, padx=4)
+            self._sdo_radio_buttons.append(rb)
 
         self._info_card(left, [
             ("数据源", "NASA SDO"), ("当前波段", "304 Å 色球层"),
             ("更新频率", "15-60 分钟"), ("自动刷新", "每 60 分钟"),
         ], "sdo_info_label")
 
-        right = tk.Frame(inner, bg=BG_MAIN, padx=16, pady=16)
-        right.pack(side="left", fill="both", expand=True)
-
+        right = self._preview_area(p)
         box, self.sdo_preview, self.sdo_status, _di = self._preview_container(
             right, "sdo", "sdo_preview", "sdo_status")
-        # sdo_status = 右上角水印（逻辑层 _load_preview 写入）
 
-        ctrl = tk.Frame(right, bg=BG_MAIN, height=40)
-        ctrl.pack(fill="x", side="bottom")
-        ctrl.pack_propagate(False)
-
-        self.btn_sdo_fetch = ModernButton(ctrl, text="获取最新太阳图",
+        bar = self._action_bar(right)
+        self.btn_sdo_fetch = ModernButton(bar, text="获取最新太阳图",
                                           command=self._fetch_sdo,
                                           width=116, height=34, bg=SDO_ACCENT,
                                           hover_bg=SDO_LIGHT, font=FONT_SMALL)
         self.btn_sdo_fetch.pack(side="left", padx=(0, 6))
-
-        self.btn_sdo_auto = ModernButton(ctrl,
+        self.btn_sdo_auto = ModernButton(bar,
             text="自动刷新: 开" if self.sdo_auto_refresh else "自动刷新: 关",
             command=self._toggle_sdo_auto_refresh,
             width=104, height=34,
@@ -951,12 +921,10 @@ class NASAApp:
             hover_bg="#1a4a3f" if self.sdo_auto_refresh else BG_CARD_HOVER,
             fg=GREEN if self.sdo_auto_refresh else FG_DIM, font=FONT_SMALL)
         self.btn_sdo_auto.pack(side="left", padx=(0, 6))
-
-        self.sdo_countdown = tk.Label(ctrl, text="", bg=BG_MAIN, fg=FG_DIM,
-                                      font=FONT_MICRO)
+        self.sdo_countdown = CompatLabel(bar, text="", fg_color="transparent",
+                                         text_color=FG_DIM, font=FONT_MICRO)
         self.sdo_countdown.pack(side="left", padx=4)
-
-        self.btn_sdo_wp = ModernButton(ctrl, text="设为壁纸",
+        self.btn_sdo_wp = ModernButton(bar, text="设为壁纸",
                                        command=self._set_sdo_wallpaper,
                                        width=104, height=34, bg=ACCENT,
                                        hover_bg=ACCENT_HOVER, font=FONT_SMALL)
@@ -968,19 +936,16 @@ class NASAApp:
         self.config["data_source"] = source
         save_config(self.config)
 
-        # 隐藏所有面板
         for p in [self.panel_apod, self.panel_sat, self.panel_fy4, self.panel_sdo]:
             p.pack_forget()
 
-        # 停止所有计时器
         self._stop_sat_refresh_timer()
         self._stop_fy4_refresh_timer()
         self._stop_sdo_refresh_timer()
 
-        # 重置所有导航项（指示条透明 + 侧边栏底色 + 次要文字色）
         for btn in [self.btn_apod, self.btn_sat, self.btn_fy4, self.btn_sdo]:
-            btn.configure(bg=SIDEBAR_BG, fg=FG_SECONDARY)
-            btn._indicator.configure(bg=SIDEBAR_BG)
+            btn.configure(fg_color="transparent", text_color=FG_SECONDARY)
+            btn._indicator.configure(fg_color=BG_SIDEBAR)
 
         if source == "apod":
             self.panel_apod.pack(fill="both", expand=True)
@@ -1005,10 +970,9 @@ class NASAApp:
             self._start_sdo_refresh_timer()
 
     def _activate_nav(self, btn, status_text: str):
-        """激活指定导航项：左侧 3px 主题色指示条 + 背景高亮 + 图标亮色 + 更新状态栏"""
-        btn.configure(bg=SIDEBAR_HOVER, fg=FG_TEXT)
-        btn._indicator.configure(bg=btn._accent)
-        btn._badge.configure(bg=SIDEBAR_HOVER)
+        """激活导航项：左侧主题色指示条 + 背景高亮 + 更新状态栏"""
+        btn.configure(fg_color=SIDEBAR_HOVER, text_color=FG_TEXT)
+        btn._indicator.configure(fg_color=btn._accent)
         self._update_status(status_text)
 
     # ========== APOD 数据操作 ==========
@@ -1976,7 +1940,12 @@ class NASAApp:
 
 
 def main():
-    root = tk.Tk()
+    # CustomTkinter 外观（深色观测台主题）
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")
+    root = ctk.CTk()
+    root.title("RealEarth v5.0 — Cosmic Observatory · 深空观测台")
+    root.minsize(1280, 800)
     NASAApp(root)
     root.mainloop()
 
