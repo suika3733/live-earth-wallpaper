@@ -30,35 +30,64 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ========== 颜色主题 ==========
-BG_MAIN = "#0f0f1a"
-BG_CARD = "#1a1a2e"
-BG_INPUT = "#16213e"
-FG_TEXT = "#e0e0e0"
-FG_DIM = "#a0a0b0"
-ACCENT = "#e94560"
-ACCENT_HOVER = "#ff6b81"
-ACCENT2 = "#0f3460"
-BORDER = "#2a2a40"
-GREEN = "#4ecca3"
-YELLOW = "#f9d423"
-BLUE = "#2d8cf0"
-BLUE_HOVER = "#4aa3f7"
-EARTH_ACCENT = "#00b4d8"
-SDO_ACCENT = "#ff8c00"
-SAT_ACCENT = "#00b4d8"
+# ========== 颜色主题 (RealEarth UI Design System v5.0 "Cosmic Observatory") ==========
+# 深空藏青色系，非纯黑，中性色带冷蓝色调微染
+# 基础表面
+BG_MAIN = "#080B14"            # --bg-app 应用最底层背景
+BG_SURFACE = "#0D1220"         # --bg-surface 面板/控制区
+BG_CARD = "#131A2B"            # --bg-card 卡片/预览容器
+BG_CARD_HOVER = "#1A2238"      # --bg-card-hover
+BG_ELEVATED = "#1E2740"        # --bg-elevated 浮层
+BG_INPUT = "#0F1626"           # --bg-input 输入框
+BG_SIDEBAR = "#0A0E1A"         # --bg-sidebar 侧边栏
 
-# 侧边栏主题（4.0.0 新增）
-SIDEBAR_BG = "#10101c"
-SIDEBAR_HOVER = "#1c1c30"
-NAV_ACTIVE = "#2563eb"
+# 文字色阶
+FG_TEXT = "#E8ECF4"            # --text-primary
+FG_SECONDARY = "#A8B0C8"       # --text-secondary
+FG_DIM = "#6B7390"             # --text-tertiary
+FG_DISABLED = "#3D4459"        # --text-disabled
+
+# 边框色阶
+BORDER = "#2A2A40"             # 保留兼容引用（对应 border-strong）
+BORDER_SUBTLE = "#1A2238"      # 极淡分隔线
+BORDER_DEFAULT = "#2A3A55"     # 默认边框 rgba(255,255,255,0.10) 近似
+
+# 主操作色 (CTA)
+ACCENT = "#E94560"             # --cta 「设为壁纸」主按钮
+ACCENT_HOVER = "#FF6B81"       # --cta-hover
+
+# 数据源主题色（色彩编码导航）
+APOD_ACCENT = "#7C5CFC"        # 宇宙紫 — 天文图片
+SAT_ACCENT = "#00B4D8"         # 海洋青 — 卫星影像
+FY4_ACCENT = "#E8453C"         # 烬红 — 风云四号
+SDO_ACCENT = "#FF8C00"         # 太阳橙 — 太阳观测
+EARTH_ACCENT = "#00B4D8"       # 兼容旧引用 = SAT_ACCENT
+
+# 次级操作/导航非激活底色
+ACCENT2 = "#1E2740"            # 对应 --bg-elevated（替代旧深蓝 #0f3460）
+NAV_ACTIVE = "#2563eb"         # 信息蓝（保留变量，导航已改用数据源色）
+
+# 语义色
+GREEN = "#4ECCA3"              # --success
+YELLOW = "#F9D423"             # --warning
+ERROR = "#EF4444"              # --error
+BLUE = "#3B82F6"               # --info
+BLUE_HOVER = "#4AA3F7"
+
+# 侧边栏主题
+SIDEBAR_BG = BG_SIDEBAR
+SIDEBAR_HOVER = "#141A2E"      # --bg-sidebar-hover
 NAV_ACTIVE_HOVER = "#3b82f6"
-FY4_ACCENT = "#e8453c"
 
-FONT_FAMILY = ("Microsoft YaHei", "微软雅黑", "PingFang SC", "Arial")
-FONT_TITLE = (FONT_FAMILY[0], 14, "bold")
-FONT_BODY = (FONT_FAMILY[0], 11)
-FONT_SMALL = (FONT_FAMILY[0], 9)
+# 字体系统（设计规范 §3：Windows 系统字体栈）
+FONT_FAMILY = ("Microsoft YaHei UI", "Segoe UI Variable", "Segoe UI", "Microsoft YaHei", "PingFang SC", "Arial")
+FONT_MONO = ("Cascadia Code", "JetBrains Mono", "Consolas", "Consolas")
+
+# 字号比例（1.2 模数，5 级）——规范 §3.2
+FONT_TITLE = (FONT_FAMILY[0], 14, "bold")     # Panel Title
+FONT_BODY = (FONT_FAMILY[0], 13)              # Body
+FONT_SMALL = (FONT_FAMILY[0], 11, "normal")   # Caption
+FONT_MICRO = (FONT_MONO[0], 10, "bold")       # Micro（等宽，时间戳/分辨率标签）
 FONT_BIG = (FONT_FAMILY[0], 16, "bold")
 
 
@@ -159,39 +188,56 @@ class NASAApp:
         start_scheduler()
         self._check_auto_startup()
 
-    # ========== UI 构建（4.0.0 现代深色侧边栏） ==========
+    # ========== UI 构建（4.0.0 现代深色侧边栏 + v5.0 深空观测台主题） ==========
     def _build_ui(self):
         # 整体左右布局：左侧边栏 + 右侧内容区
         main_frame = tk.Frame(self.root, bg=BG_MAIN)
         main_frame.pack(fill="both", expand=True)
 
-        # ---- 左侧边栏 ----
-        sidebar = tk.Frame(main_frame, bg=SIDEBAR_BG, width=212)
+        # ---- 左侧边栏（规范 §9.3：品牌区 + 导航区 + 底部区）----
+        sidebar = tk.Frame(main_frame, bg=SIDEBAR_BG, width=220)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
-        tk.Label(sidebar, text="🌍 RealEarth", bg=SIDEBAR_BG, fg="white",
-                 font=(FONT_FAMILY[0], 17, "bold")).pack(anchor="w", padx=20, pady=(20, 2))
-        tk.Label(sidebar, text="真实地球壁纸 · 4.0.0", bg=SIDEBAR_BG, fg=FG_DIM,
-                 font=FONT_SMALL).pack(anchor="w", padx=20, pady=(0, 18))
+        # 品牌区（顶部星场装饰 + 名称 + 副标题）
+        brand = tk.Frame(sidebar, bg=SIDEBAR_BG)
+        brand.pack(fill="x", pady=(18, 10))
+        tk.Label(brand, text="🌍 RealEarth", bg=SIDEBAR_BG, fg=FG_TEXT,
+                 font=(FONT_FAMILY[0], 17, "bold")).pack(anchor="w", padx=20)
+        tk.Label(brand, text="深空观测台 · 真实地球壁纸", bg=SIDEBAR_BG, fg=FG_DIM,
+                 font=FONT_SMALL).pack(anchor="w", padx=20, pady=(2, 0))
 
-        tk.Label(sidebar, text="数据源", bg=SIDEBAR_BG, fg="#6b6b85",
-                 font=(FONT_FAMILY[0], 9)).pack(anchor="w", padx=20, pady=(0, 6))
+        # 分隔线
+        tk.Frame(sidebar, bg=BORDER_DEFAULT, height=1).pack(fill="x", padx=16, pady=(6, 12))
 
-        self.btn_apod = self._make_nav(sidebar, "🔭  天文图片", "apod", ACCENT2)
-        self.btn_sat = self._make_nav(sidebar, "🛰  卫星影像", "satellite", SAT_ACCENT)
-        self.btn_fy4 = self._make_nav(sidebar, "🇨🇳  风云四号", "fy4", FY4_ACCENT)
-        self.btn_sdo = self._make_nav(sidebar, "☀  太阳观测", "sdo", SDO_ACCENT)
+        tk.Label(sidebar, text="数据源", bg=SIDEBAR_BG, fg=FG_DIM,
+                 font=FONT_MICRO).pack(anchor="w", padx=20, pady=(0, 6))
 
-        # 侧边栏底部：说明 / 设置
+        # 4 个数据源导航项，各自独立主题色（色彩编码导航，规范 §2.4/§8.7）
+        self.btn_apod = self._make_nav(sidebar, "🔭  天文图片", "apod", APOD_ACCENT, APOD_ACCENT)
+        self.btn_sat = self._make_nav(sidebar, "🛰  卫星影像", "satellite", SAT_ACCENT, SAT_ACCENT)
+        self.btn_fy4 = self._make_nav(sidebar, "🇨🇳  风云四号", "fy4", FY4_ACCENT, FY4_ACCENT)
+        self.btn_sdo = self._make_nav(sidebar, "☀  太阳观测", "sdo", SDO_ACCENT, SDO_ACCENT)
+
+        # 侧边栏底部：说明 / 设置 + 分隔线 + 版本号
         bottom = tk.Frame(sidebar, bg=SIDEBAR_BG)
         bottom.pack(side="bottom", fill="x", pady=14)
+
+        # 底部区：说明 / 设置 / 分隔线 / 版本号（纵向堆叠）
+        bottom = tk.Frame(sidebar, bg=SIDEBAR_BG)
+        bottom.pack(side="bottom", fill="x", pady=12)
+        tk.Frame(bottom, bg=BORDER_DEFAULT, height=1).pack(fill="x", padx=16, pady=(0, 10))
+
         ModernButton(bottom, text="📖 使用说明", command=self._show_help,
-                     width=170, height=32, bg="#1c1c30", hover_bg="#262640",
-                     font=(FONT_FAMILY[0], 10)).pack(side="left", padx=20, pady=3)
+                     width=176, height=34, bg=SIDEBAR_HOVER, hover_bg=BG_ELEVATED,
+                     fg=FG_SECONDARY, font=(FONT_FAMILY[0], 11)).pack(anchor="w", padx=20, pady=3)
         ModernButton(bottom, text="⚙ 设置", command=self._show_settings,
-                     width=170, height=32, bg="#1c1c30", hover_bg="#262640",
-                     font=(FONT_FAMILY[0], 10)).pack(side="left", padx=20, pady=3)
+                     width=176, height=34, bg=SIDEBAR_HOVER, hover_bg=BG_ELEVATED,
+                     fg=FG_SECONDARY, font=(FONT_FAMILY[0], 11)).pack(anchor="w", padx=20, pady=3)
+
+        tk.Label(bottom, text="v4.0.0 · Cosmic Observatory", bg=SIDEBAR_BG,
+                 fg=FG_DISABLED, font=FONT_MICRO).pack(anchor="w", padx=20, pady=(8, 0))
+
 
         # ---- 右侧内容区 ----
         body = tk.Frame(main_frame, bg=BG_MAIN)
@@ -207,7 +253,7 @@ class NASAApp:
         tk.Label(left, text="📂 图片分类", bg=BG_MAIN, fg=FG_TEXT,
                  font=FONT_TITLE).pack(anchor="w", pady=(0, 8))
 
-        cat_frame = tk.Frame(left, bg=BG_INPUT, highlightbackground=BORDER, highlightthickness=1)
+        cat_frame = tk.Frame(left, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         cat_frame.pack(fill="both", expand=True)
 
         cols = ("category", "count")
@@ -216,9 +262,9 @@ class NASAApp:
         style.theme_use("clam")
         style.configure("Treeview", background=BG_INPUT, foreground=FG_TEXT,
                         fieldbackground=BG_INPUT, rowheight=28, font=FONT_BODY)
-        style.configure("Treeview.Heading", background=BG_CARD, foreground=FG_TEXT,
-                        font=(FONT_FAMILY[0], 10, "bold"))
-        style.map("Treeview", background=[("selected", ACCENT2)],
+        style.configure("Treeview.Heading", background=BG_CARD, foreground=FG_SECONDARY,
+                        font=(FONT_FAMILY[0], 11, "bold"))
+        style.map("Treeview", background=[("selected", BLUE)],
                   foreground=[("selected", "white")])
         style.configure("Vertical.TScrollbar", background=BG_CARD,
                         troughcolor=BG_MAIN, arrowcolor=FG_DIM)
@@ -237,11 +283,11 @@ class NASAApp:
         right = tk.Frame(self.panel_apod, bg=BG_MAIN)
         right.pack(side="left", fill="both", expand=True)
 
-        preview = tk.Frame(right, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        preview = tk.Frame(right, bg=BG_CARD, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         preview.pack(fill="both", expand=True, pady=(0, 10))
 
-        self.apod_preview = tk.Label(preview, bg=BG_CARD, text="📷 暂无图片", fg=FG_DIM,
-                                     font=(FONT_FAMILY[0], 14))
+        self.apod_preview = tk.Label(preview, bg=BG_CARD, text="📷\n暂无图片，点击「获取历史」拉取 NASA 精选",
+                                     fg=APOD_ACCENT, font=(FONT_FAMILY[0], 16))
         self.apod_preview.pack(fill="both", expand=True)
 
         self.apod_info = tk.Label(preview, bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL,
@@ -255,13 +301,13 @@ class NASAApp:
         nav = tk.Frame(ctrl, bg=BG_MAIN)
         nav.pack(side="left")
         self.btn_prev = ModernButton(nav, text="◀", command=self._prev_image,
-                                     width=40, height=32, bg=ACCENT2, hover_bg="#1a4a7a")
+                                     width=40, height=32, bg=ACCENT2, hover_bg=BG_CARD_HOVER)
         self.btn_prev.pack(side="left", padx=2)
         self.page_label = tk.Label(nav, text="0 / 0", bg=BG_MAIN, fg=FG_TEXT,
                                    font=FONT_BODY, width=10)
         self.page_label.pack(side="left", padx=10)
         self.btn_next = ModernButton(nav, text="▶", command=self._next_image,
-                                     width=40, height=32, bg=ACCENT2, hover_bg="#1a4a7a")
+                                     width=40, height=32, bg=ACCENT2, hover_bg=BG_CARD_HOVER)
         self.btn_next.pack(side="left", padx=2)
 
         self.btn_fetch = ModernButton(ctrl, text="📥 获取历史", command=self._fetch_history,
@@ -272,7 +318,7 @@ class NASAApp:
         rc.pack(side="right")
         self.btn_update = ModernButton(rc, text="🔄 更新", command=self._update_now,
                                        width=80, height=32, bg=GREEN, hover_bg="#6ee7c5",
-                                       fg="#0f0f1a")
+                                       fg="#0A1A14")
         self.btn_update.pack(side="left", padx=2)
         self.btn_wallpaper = ModernButton(rc, text="🖼 设为壁纸", command=self._set_wallpaper,
                                           width=100, height=32, bg=ACCENT, hover_bg=ACCENT_HOVER)
@@ -316,7 +362,7 @@ class NASAApp:
                            activebackground=BG_MAIN, activeforeground=FG_TEXT,
                            font=FONT_SMALL).pack(anchor="w")
 
-        info_card = tk.Frame(sat_left, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        info_card = tk.Frame(sat_left, bg=BG_CARD, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         info_card.pack(fill="both", expand=True)
         self.sat_info_label = tk.Label(info_card, text="", bg=BG_CARD,
                                        fg=FG_DIM, font=FONT_SMALL, justify="left",
@@ -326,12 +372,12 @@ class NASAApp:
         sat_right = tk.Frame(self.panel_sat, bg=BG_MAIN)
         sat_right.pack(side="left", fill="both", expand=True)
 
-        sat_preview = tk.Frame(sat_right, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        sat_preview = tk.Frame(sat_right, bg=BG_CARD, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         sat_preview.pack(fill="both", expand=True, pady=(0, 10))
 
         self.sat_preview = tk.Label(sat_preview, bg=BG_CARD,
                                     text="🛰\n选择卫星后点击获取最新影像",
-                                    fg=FG_DIM, font=(FONT_FAMILY[0], 14))
+                                    fg=SAT_ACCENT, font=(FONT_FAMILY[0], 16))
         self.sat_preview.pack(fill="both", expand=True)
 
         self.sat_status = tk.Label(sat_preview, bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL)
@@ -343,7 +389,7 @@ class NASAApp:
 
         self.btn_sat_fetch = ModernButton(sat_ctrl, text="📡 获取最新影像",
                                           command=self._fetch_satellite,
-                                          width=120, height=32, bg=SAT_ACCENT, hover_bg="#00d4f4")
+                                          width=120, height=32, bg=SAT_ACCENT, hover_bg="#33C9E8")
         self.btn_sat_fetch.pack(side="left", padx=(20, 2))
 
         self.btn_sat_auto = ModernButton(sat_ctrl,
@@ -351,10 +397,10 @@ class NASAApp:
                                          command=self._toggle_sat_auto_refresh,
                                          width=120, height=32,
                                          bg=GREEN if self.sat_auto_refresh else ACCENT2,
-                                         hover_bg="#6ee7c5" if self.sat_auto_refresh else "#1a4a7a")
+                                         hover_bg="#6ee7c5" if self.sat_auto_refresh else BG_CARD_HOVER)
         self.btn_sat_auto.pack(side="left", padx=5)
 
-        self.sat_countdown = tk.Label(sat_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=(FONT_FAMILY[0], 9))
+        self.sat_countdown = tk.Label(sat_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=FONT_MICRO)
         self.sat_countdown.pack(side="left", padx=8)
 
         right_sc = tk.Frame(sat_ctrl, bg=BG_MAIN)
@@ -391,7 +437,7 @@ class NASAApp:
                  bg="#2a1414", fg="#ffb3ad", font=FONT_SMALL, justify="left",
                  padx=8, pady=8).pack(fill="x")
 
-        fy4_info_card = tk.Frame(fy4_left, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        fy4_info_card = tk.Frame(fy4_left, bg=BG_CARD, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         fy4_info_card.pack(fill="both", expand=True)
         self.fy4_info_label = tk.Label(fy4_info_card, text="", bg=BG_CARD,
                                        fg=FG_DIM, font=FONT_SMALL, justify="left",
@@ -401,12 +447,12 @@ class NASAApp:
         fy4_right = tk.Frame(self.panel_fy4, bg=BG_MAIN)
         fy4_right.pack(side="left", fill="both", expand=True)
 
-        fy4_preview = tk.Frame(fy4_right, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        fy4_preview = tk.Frame(fy4_right, bg=BG_CARD, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         fy4_preview.pack(fill="both", expand=True, pady=(0, 10))
 
         self.fy4_preview = tk.Label(fy4_preview, bg=BG_CARD,
                                      text="🇨🇳\n点击获取风云四号 FY-4B 真彩色影像",
-                                     fg=FG_DIM, font=(FONT_FAMILY[0], 14))
+                                     fg=FY4_ACCENT, font=(FONT_FAMILY[0], 16))
         self.fy4_preview.pack(fill="both", expand=True)
 
         self.fy4_status = tk.Label(fy4_preview, bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL)
@@ -426,10 +472,10 @@ class NASAApp:
                                          command=self._toggle_fy4_auto_refresh,
                                          width=120, height=32,
                                          bg=GREEN if self.fy4_auto_refresh else ACCENT2,
-                                         hover_bg="#6ee7c5" if self.fy4_auto_refresh else "#1a4a7a")
+                                         hover_bg="#6ee7c5" if self.fy4_auto_refresh else BG_CARD_HOVER)
         self.btn_fy4_auto.pack(side="left", padx=5)
 
-        self.fy4_countdown = tk.Label(fy4_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=(FONT_FAMILY[0], 9))
+        self.fy4_countdown = tk.Label(fy4_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=FONT_MICRO)
         self.fy4_countdown.pack(side="left", padx=8)
 
         right_fy4 = tk.Frame(fy4_ctrl, bg=BG_MAIN)
@@ -459,7 +505,7 @@ class NASAApp:
                            activebackground=BG_MAIN, activeforeground=FG_TEXT,
                            font=FONT_SMALL).pack(anchor="w")
 
-        sdo_info_card = tk.Frame(sdo_left, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        sdo_info_card = tk.Frame(sdo_left, bg=BG_CARD, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         sdo_info_card.pack(fill="both", expand=True, pady=(8, 0))
         tk.Label(sdo_info_card, text="拍摄频率\n约每 15-60 分钟\n自动刷新每 60 分钟",
                  bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL, justify="left", padx=8, pady=8).pack(fill="both")
@@ -467,12 +513,12 @@ class NASAApp:
         sdo_right = tk.Frame(self.panel_sdo, bg=BG_MAIN)
         sdo_right.pack(side="left", fill="both", expand=True)
 
-        sdo_preview = tk.Frame(sdo_right, bg=BG_CARD, highlightbackground=BORDER, highlightthickness=1)
+        sdo_preview = tk.Frame(sdo_right, bg=BG_CARD, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         sdo_preview.pack(fill="both", expand=True, pady=(0, 10))
 
         self.sdo_preview = tk.Label(sdo_preview, bg=BG_CARD,
                                     text="☀\n选择波段后点击获取最新太阳图像",
-                                    fg=FG_DIM, font=(FONT_FAMILY[0], 14))
+                                    fg=SDO_ACCENT, font=(FONT_FAMILY[0], 16))
         self.sdo_preview.pack(fill="both", expand=True)
 
         self.sdo_status = tk.Label(sdo_preview, bg=BG_CARD, fg=FG_DIM, font=FONT_SMALL)
@@ -492,10 +538,10 @@ class NASAApp:
                                          command=self._toggle_sdo_auto_refresh,
                                          width=120, height=32,
                                          bg=GREEN if self.sdo_auto_refresh else ACCENT2,
-                                         hover_bg="#6ee7c5" if self.sdo_auto_refresh else "#1a4a7a")
+                                         hover_bg="#6ee7c5" if self.sdo_auto_refresh else BG_CARD_HOVER)
         self.btn_sdo_auto.pack(side="left", padx=5)
 
-        self.sdo_countdown = tk.Label(sdo_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=(FONT_FAMILY[0], 9))
+        self.sdo_countdown = tk.Label(sdo_ctrl, text="", bg=BG_MAIN, fg=FG_DIM, font=FONT_MICRO)
         self.sdo_countdown.pack(side="left", padx=8)
 
         right_sdo = tk.Frame(sdo_ctrl, bg=BG_MAIN)
@@ -505,21 +551,56 @@ class NASAApp:
                                        width=100, height=32, bg=ACCENT, hover_bg=ACCENT_HOVER)
         self.btn_sdo_wp.pack(side="left", padx=2)
 
-        # ---- 状态栏 ----
-        self.status_bar = tk.Label(self.root, text="就绪", bg=BG_CARD, fg=FG_DIM,
-                                   font=FONT_SMALL, anchor="w", padx=15)
-        self.status_bar.pack(fill="x", side="bottom", ipady=4)
+        # ---- 状态栏（规范 §8.8：左=模式文字，右=调度器脉冲指示灯） ----
+        status_frame = tk.Frame(self.root, bg=BG_SURFACE)
+        status_frame.pack(fill="x", side="bottom")
+        tk.Frame(status_frame, bg=BORDER_DEFAULT, height=1).pack(fill="x")  # 顶部细分隔线
 
-    # ========== 侧边栏导航按钮 ==========
-    def _make_nav(self, parent, text, source, active_color):
-        """创建一个侧边栏导航按钮（激活态高亮）"""
-        btn = tk.Button(parent, text=text,
+        self.status_bar = tk.Label(status_frame, text="就绪", bg=BG_SURFACE, fg=FG_SECONDARY,
+                                   font=FONT_SMALL, anchor="w", padx=15, pady=6)
+        self.status_bar.pack(side="left")
+
+        # 右侧：调度器指示灯 + 文本
+        right_bar = tk.Frame(status_frame, bg=BG_SURFACE)
+        right_bar.pack(side="right", padx=15)
+        self.sched_light = tk.Canvas(right_bar, width=10, height=10, bg=BG_SURFACE,
+                                     highlightthickness=0)
+        self.sched_light.pack(side="left", padx=(0, 6))
+        self.sched_light.create_oval(1, 1, 9, 9, fill=GREEN, outline="")
+        self.sched_label = tk.Label(right_bar, text="调度器运行中", bg=BG_SURFACE,
+                                    fg=FG_DIM, font=FONT_MICRO)
+        self.sched_label.pack(side="left")
+
+        # 启动调度器脉冲呼吸动画（纯视觉，不改任何逻辑）
+        self._sched_pulse_on = True
+        self._sched_pulse_id = self.root.after(600, self._sched_pulse_tick)
+
+    # ========== 侧边栏导航按钮（v5.0 色彩编码导航，规范 §8.7） ==========
+    def _make_nav(self, parent, text, source, accent, glow):
+        """创建一个侧边栏导航项：左侧 3px 主题色指示条 + 按钮。
+
+        accent: 该数据源主色（激活指示条/按钮底色）
+        glow:   光晕色（激活态指示条光晕，当前以亮色近似）
+        """
+        row = tk.Frame(parent, bg=SIDEBAR_BG)
+        row.pack(fill="x", pady=1)
+
+        # 左侧 3px 指示条（默认透明，激活时显示数据源色 + 微光晕）
+        indicator = tk.Label(row, text="", bg=SIDEBAR_BG, width=1)
+        indicator.pack(side="left", fill="y", padx=(8, 4), pady=6)
+
+        btn = tk.Button(row, text=text,
                         command=lambda s=source: self._switch_panel(s),
-                        bg=SIDEBAR_BG, fg=FG_TEXT, font=FONT_BODY,
-                        relief="flat", anchor="w", padx=20, pady=11,
-                        activebackground=SIDEBAR_HOVER, activeforeground="white",
+                        bg=SIDEBAR_BG, fg=FG_SECONDARY, font=FONT_BODY,
+                        relief="flat", anchor="w", padx=10, pady=9,
+                        activebackground=SIDEBAR_HOVER, activeforeground=FG_TEXT,
                         cursor="hand2", bd=0)
-        btn.pack(fill="x", pady=2)
+        btn.pack(side="left", fill="both", expand=True)
+
+        # 保存指示条与激活色，供 _switch_panel 切换状态
+        btn._indicator = indicator
+        btn._accent = accent
+        btn._glow = glow
         return btn
 
     # ========== 面板切换 ==========
@@ -537,33 +618,38 @@ class NASAApp:
         self._stop_fy4_refresh_timer()
         self._stop_sdo_refresh_timer()
 
-        # 重置侧边栏按钮样式（plain tk.Button，使用 configure）
+        # 重置所有导航项（指示条透明 + 侧边栏底色 + 次要文字色）
         for btn in [self.btn_apod, self.btn_sat, self.btn_fy4, self.btn_sdo]:
-            btn.configure(bg=SIDEBAR_BG, fg=FG_TEXT)
+            btn.configure(bg=SIDEBAR_BG, fg=FG_SECONDARY)
+            btn._indicator.configure(bg=SIDEBAR_BG)
 
         if source == "apod":
             self.panel_apod.pack(fill="both", expand=True)
-            self.btn_apod.configure(bg=ACCENT2, fg="white")
-            self._update_status("天文图片模式 | NASA APOD 每日精选")
+            self._activate_nav(self.btn_apod, "天文图片模式 | NASA APOD 每日精选")
         elif source == "satellite":
             self.panel_sat.pack(fill="both", expand=True)
-            self.btn_sat.configure(bg=SAT_ACCENT, fg="white")
-            self._update_sat_info()
             sat = self.config.get("satellite_id", "himawari")
-            self._update_status(f"卫星影像模式 | {GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)}")
+            self._activate_nav(self.btn_sat,
+                f"卫星影像模式 | {GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)}")
+            self._update_sat_info()
             self._start_sat_refresh_timer()
         elif source == "fy4":
             self.panel_fy4.pack(fill="both", expand=True)
-            self.btn_fy4.configure(bg=FY4_ACCENT, fg="white")
+            self._activate_nav(self.btn_fy4, "风云四号 FY-4B 真彩色影像 | 中国风采")
             self._update_fy4_info()
-            self._update_status("风云四号 FY-4B 真彩色影像 | 中国风采")
             self._start_fy4_refresh_timer()
         elif source == "sdo":
             self.panel_sdo.pack(fill="both", expand=True)
-            self.btn_sdo.configure(bg=SDO_ACCENT, fg="white")
             band = self.config.get("sdo_band", "0304")
-            self._update_status(f"太阳观测模式 | {SDO_BANDS.get(band, {}).get('name', band)}")
+            self._activate_nav(self.btn_sdo,
+                f"太阳观测模式 | {SDO_BANDS.get(band, {}).get('name', band)}")
             self._start_sdo_refresh_timer()
+
+    def _activate_nav(self, btn, status_text: str):
+        """激活指定导航项：左侧 3px 主题色指示条 + 背景高亮 + 更新状态栏"""
+        btn.configure(bg=SIDEBAR_HOVER, fg=FG_TEXT)
+        btn._indicator.configure(bg=btn._accent, width=3)
+        self._update_status(status_text)
 
     # ========== APOD 数据操作 ==========
     def _rebuild_category_data(self):
@@ -890,7 +976,7 @@ class NASAApp:
             self._update_status("卫星自动刷新已开启", color=GREEN)
         else:
             self.btn_sat_auto._bg = ACCENT2
-            self.btn_sat_auto._hover_bg = "#1a4a7a"
+            self.btn_sat_auto._hover_bg = BG_CARD_HOVER
             self.btn_sat_auto._text = "🔄 自动刷新: 关"
             self.btn_sat_auto._draw(ACCENT2)
             self._stop_sat_refresh_timer()
@@ -973,7 +1059,7 @@ class NASAApp:
             self._update_status("SDO 自动刷新已开启", color=GREEN)
         else:
             self.btn_sdo_auto._bg = ACCENT2
-            self.btn_sdo_auto._hover_bg = "#1a4a7a"
+            self.btn_sdo_auto._hover_bg = BG_CARD_HOVER
             self.btn_sdo_auto._text = "🔄 自动刷新: 关"
             self.btn_sdo_auto._draw(ACCENT2)
             self._stop_sdo_refresh_timer()
@@ -1128,7 +1214,7 @@ class NASAApp:
         else:
             self.btn_fy4_auto.set_text("🔄 自动刷新: 关")
             self.btn_fy4_auto._bg = ACCENT2
-            self.btn_fy4_auto._hover_bg = "#1a4a7a"
+            self.btn_fy4_auto._hover_bg = BG_CARD_HOVER
             self.btn_fy4_auto._draw(ACCENT2)
             self._stop_fy4_refresh_timer()
             self._update_status("风云四号自动刷新已关闭")
@@ -1354,11 +1440,22 @@ class NASAApp:
         text.config(state="disabled")
 
         ModernButton(win, text="知道了", command=win.destroy,
-                     width=80, height=32, bg=ACCENT2, hover_bg="#1a4a7a").pack(pady=8)
+                     width=80, height=32, bg=ACCENT2, hover_bg=BG_CARD_HOVER).pack(pady=8)
 
     # ========== 状态/自动启动 ==========
-    def _update_status(self, text: str, color: str = FG_DIM):
+    def _update_status(self, text: str, color: str = FG_SECONDARY):
         self.status_bar.config(text=text, fg=color)
+
+    def _sched_pulse_tick(self):
+        """调度器指示灯呼吸动画（规范 §8.10）：深浅绿交替模拟 opacity 脉冲，纯视觉。"""
+        try:
+            self._sched_pulse_on = not self._sched_pulse_on
+            fill = "#2A6E56" if self._sched_pulse_on else GREEN
+            self.sched_light.delete("all")
+            self.sched_light.create_oval(1, 1, 9, 9, fill=fill, outline="")
+            self._sched_pulse_id = self.root.after(900, self._sched_pulse_tick)
+        except tk.TclError:
+            pass  # 窗口已销毁
 
     def _auto_fetch_on_startup(self):
         self._update_status("⏳ 首次启动，正在自动获取 NASA 图片...", color=YELLOW)
@@ -1506,6 +1603,11 @@ class NASAApp:
 
     def _quit_app(self):
         """完全退出程序"""
+        if getattr(self, "_sched_pulse_id", None):
+            try:
+                self.root.after_cancel(self._sched_pulse_id)
+            except Exception:
+                pass
         if self.tray_icon:
             self.tray_icon.stop()
             self.tray_icon = None
