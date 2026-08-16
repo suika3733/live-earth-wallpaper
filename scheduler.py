@@ -7,18 +7,32 @@ from config import load_config, save_config, load_metadata, save_metadata
 from nasa_api import fetch_apod, download_image
 from categorizer import categorize_image
 from wallpaper import set_wallpaper, watermark_image
-from providers import GEOSTATIONARY_SATELLITES, fetch_satellite_image, fetch_sdo_image
+from providers import (
+    GEOSTATIONARY_SATELLITES,
+    fetch_satellite_image,
+    fetch_sdo_image,
+    fetch_fy4_image,
+    get_fy4_capture_time,
+)
 
 logger = logging.getLogger(__name__)
 
 _scheduler_thread = None
 _stop_event = threading.Event()
 
+# 调度器轮询间隔（秒）。改为短轮询而非长时间阻塞等待，保证：
+# 1) 切换数据源（apod/satellite/sdo/fy4）能在 POLL_INTERVAL 秒内即时生效
+# 2) 自动刷新/自动设壁纸开关变更能快速响应
+# 旧实现用 _stop_event.wait(3600) 等长时间阻塞，导致切换数据源后调度器要等当前等待结束
+# 才能读到新配置，表现为「自动刷新/自动设壁纸全部失效」。
+POLL_INTERVAL = 15
+
 # 各数据源下次刷新时间（供前端展示倒计时）
 _next_refresh = {
     "apod": None,
     "satellite": None,
     "sdo": None,
+    "fy4": None,
 }
 
 
@@ -27,7 +41,17 @@ _last_refresh_time = {
     "apod": None,
     "satellite": None,
     "sdo": None,
+    "fy4": None,
 }
+
+
+def _interruptible_wait(seconds: float, step: float = 3.0):
+    """可中断的等待：以 step 秒为粒度分段等待，避免长时间阻塞导致配置变更无法实时生效。"""
+    remaining = seconds
+    while remaining > 0 and not _stop_event.is_set():
+        s = min(step, remaining)
+        _stop_event.wait(s)
+        remaining -= s
 
 
 def _due(source: str, interval_minutes: int) -> bool:
@@ -155,6 +179,47 @@ def check_and_update_sdo() -> bool:
     return False
 
 
+def check_and_update_fy4() -> bool:
+    """风云四号 FY-4B 真彩色影像更新（NSMC 数据源）"""
+    config = load_config()
+    style = config.get("wallpaper_style", "fill")
+    auto_set = config.get("fy4_auto_set_wallpaper", True)
+    size = config.get("fy4_size", 1080)
+
+    logger.info(f"FY-4B update: target_size={size}")
+
+    # 影像实际更新时间（北京时间），用于水印展示
+    capture_time = None
+    try:
+        capture_time = get_fy4_capture_time()
+    except Exception as e:
+        logger.warning(f"Get FY-4 capture time failed: {e}")
+
+    path = fetch_fy4_image(target_size=size, force=True)
+    if not path:
+        logger.warning("FY-4B image download failed")
+        return False
+
+    now = datetime.now()
+    # 仅当开启「自动设为壁纸」时才真正设置壁纸
+    if not auto_set:
+        logger.info("FY-4B auto-set-wallpaper disabled, skip setting wallpaper")
+        return True
+
+    wp_path = watermark_image(
+        path,
+        left_text="来源: 风云四号 FY-4B (中国)",
+        right_text=f"拍摄时间: {capture_time.strftime('%Y-%m-%d %H:%M') if capture_time else now.strftime('%Y-%m-%d %H:%M')} (UTC+8)",
+        output_key="fy4_fy4b",
+    )
+    if set_wallpaper(wp_path, "fy4_fy4b", style=style):
+        config["last_fy4_update"] = now.strftime("%Y-%m-%d %H:%M:%S")
+        save_config(config)
+        logger.info("FY-4B wallpaper updated")
+        return True
+    return False
+
+
 def get_next_refresh_info() -> dict:
     """返回各数据源下次刷新时间与当前开关状态，供前端展示倒计时"""
     config = load_config()
@@ -163,11 +228,14 @@ def get_next_refresh_info() -> dict:
         "auto_update": config.get("auto_update", True),
         "satellite_auto_refresh": config.get("satellite_auto_refresh", True),
         "sdo_auto_refresh": config.get("sdo_auto_refresh", True),
+        "fy4_auto_refresh": config.get("fy4_auto_refresh", True),
         "sat_auto_set_wallpaper": config.get("sat_auto_set_wallpaper", True),
         "sdo_auto_set_wallpaper": config.get("sdo_auto_set_wallpaper", True),
+        "fy4_auto_set_wallpaper": config.get("fy4_auto_set_wallpaper", True),
         "apod_auto_set_wallpaper": config.get("apod_auto_set_wallpaper", True),
         "satellite_refresh_interval": config.get("satellite_refresh_interval", 10),
         "sdo_refresh_interval": config.get("sdo_refresh_interval", 60),
+        "fy4_refresh_interval": config.get("fy4_refresh_interval", 15),
         "next_refresh": {k: (v.isoformat() if v else None) for k, v in _next_refresh.items()},
         "running": is_scheduler_running(),
     }
@@ -186,68 +254,77 @@ def _scheduler_loop():
             sat_auto = config.get("satellite_auto_refresh", True)
             sdo_interval = config.get("sdo_refresh_interval", 60)
             sdo_auto = config.get("sdo_auto_refresh", True)
+            fy4_interval = config.get("fy4_refresh_interval", 15)
+            fy4_auto = config.get("fy4_auto_refresh", True)
             apod_auto = config.get("auto_update", True)
 
             if data_source == "satellite":
                 if not sat_auto:
                     _next_refresh["satellite"] = None
-                    _stop_event.wait(15)
-                    continue
-                if _due("satellite", sat_interval):
+                elif _due("satellite", sat_interval):
                     _last_refresh_time["satellite"] = datetime.now()
                     _next_refresh["satellite"] = _last_refresh_time["satellite"] + timedelta(minutes=sat_interval)
                     logger.info(f"Satellite refresh due, running check (interval={sat_interval}m)")
                     check_and_update_satellite()
-                _stop_event.wait(15)
+                else:
+                    base = _last_refresh_time["satellite"] or datetime.now()
+                    _next_refresh["satellite"] = base + timedelta(minutes=sat_interval)
 
             elif data_source == "sdo":
                 if not sdo_auto:
                     _next_refresh["sdo"] = None
-                    _stop_event.wait(15)
-                    continue
-                if _due("sdo", sdo_interval):
+                elif _due("sdo", sdo_interval):
                     _last_refresh_time["sdo"] = datetime.now()
                     _next_refresh["sdo"] = _last_refresh_time["sdo"] + timedelta(minutes=sdo_interval)
                     logger.info(f"SDO refresh due, running check (interval={sdo_interval}m)")
                     check_and_update_sdo()
-                _stop_event.wait(15)
+                else:
+                    base = _last_refresh_time["sdo"] or datetime.now()
+                    _next_refresh["sdo"] = base + timedelta(minutes=sdo_interval)
+
+            elif data_source == "fy4":
+                if not fy4_auto:
+                    _next_refresh["fy4"] = None
+                elif _due("fy4", fy4_interval):
+                    _last_refresh_time["fy4"] = datetime.now()
+                    _next_refresh["fy4"] = _last_refresh_time["fy4"] + timedelta(minutes=fy4_interval)
+                    logger.info(f"FY-4 refresh due, running check (interval={fy4_interval}m)")
+                    check_and_update_fy4()
+                else:
+                    base = _last_refresh_time["fy4"] or datetime.now()
+                    _next_refresh["fy4"] = base + timedelta(minutes=fy4_interval)
 
             else:
-                # NASA APOD: 每天检查一次
+                # NASA APOD: 每日在 update_time 之后检查一次
                 if not apod_auto:
                     _next_refresh["apod"] = None
-                    _stop_event.wait(15)
-                    continue
-
-                today = datetime.now().strftime("%Y-%m-%d")
-                last_update = config.get("last_update", "")
-                if last_update.startswith(today):
+                else:
+                    today = datetime.now().strftime("%Y-%m-%d")
                     update_time = config.get("update_time", "09:00")
-                    tomorrow = datetime.now() + timedelta(days=1)
+                    now = datetime.now()
                     try:
-                        next_run = datetime.strptime(
-                            f"{tomorrow.strftime('%Y-%m-%d')} {update_time}",
-                            "%Y-%m-%d %H:%M"
-                        )
-                        _next_refresh["apod"] = next_run
-                        wait_seconds = (next_run - datetime.now()).total_seconds()
-                        wait_seconds = max(60, min(wait_seconds, 86400))
+                        update_dt = datetime.strptime(f"{today} {update_time}", "%Y-%m-%d %H:%M")
                     except ValueError:
-                        _next_refresh["apod"] = datetime.now() + timedelta(hours=1)
-                        wait_seconds = 3600
+                        update_dt = now
+                    past_update_time = now >= update_dt
+                    already = (config.get("last_update") or "").startswith(today)
 
-                    logger.info(f"Already updated today, wait {wait_seconds:.0f}s")
-                    _stop_event.wait(wait_seconds)
-                    continue
+                    if already or not past_update_time:
+                        # 今天已更新，或还没到今日更新时间 -> 暂不刷新
+                        _next_refresh["apod"] = update_dt if not already else (update_dt + timedelta(days=1))
+                    else:
+                        # 今天未更新且已过更新时间 -> 立即刷新
+                        _last_refresh_time["apod"] = now
+                        _next_refresh["apod"] = now + timedelta(hours=1)
+                        logger.info("APOD daily update due, running check")
+                        check_and_update()
 
-                _next_refresh["apod"] = datetime.now() + timedelta(hours=1)
-                _last_refresh_time["apod"] = datetime.now()
-                check_and_update()
-                _stop_event.wait(3600)
+            # 关键修复：不再长时间阻塞，改为短轮询，使数据源/开关变更在 POLL_INTERVAL 秒内即时生效
+            _interruptible_wait(POLL_INTERVAL)
 
         except Exception as e:
             logger.error(f"Scheduler error: {e}")
-            _stop_event.wait(1800)
+            _interruptible_wait(30)
 
     logger.info("Scheduler stopped")
 

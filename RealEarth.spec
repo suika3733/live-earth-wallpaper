@@ -1,23 +1,36 @@
 # -*- mode: python ; coding: utf-8 -*-
+# RealEarth 4.0.0 打包配置
+# 单进程 Tkinter 桌面应用，不再依赖 Flask / pywebview / Edge WebView2
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('ui-redesign/index.html', '.'), ('ui-redesign/logo.png', '.')]
+# 4.0.0 已废弃 Web UI，无需携带 ui-redesign 静态资源
+datas = []
 binaries = []
-hiddenimports = ['server', 'autostart', 'providers', 'providers.geostationary', 'providers.sdo', 'pystray', 'flask', 'flask_cors', 'webview']
+hiddenimports = [
+    'autostart',
+    'providers',
+    'providers.geostationary',
+    'providers.sdo',
+    'providers.fy4',
+    'providers.noaa_goes',
+    'pystray',
+]
 tmp_ret = collect_all('PIL')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+datas += tmp_ret[0]
+binaries += tmp_ret[1]
+hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['launcher.py'],
-    pathex=['ui-redesign'],
+    pathex=[],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['flask', 'flask_cors', 'webview', 'server', 'ui-redesign'],
     noarchive=False,
     optimize=0,
 )
