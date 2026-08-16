@@ -753,16 +753,18 @@ class NASAApp:
         self._build_fy4_panel()
         self._build_sdo_panel()
 
-    # ---- 通用：面板头（主题色图标 + 标题 + 副标题） ----
+    # ---- 通用：面板头（主题色圆角图标 + 标题 + 副标题） ----
     def _panel_header(self, parent, icon, accent, light, title, sub):
         hd = ctk.CTkFrame(parent, fg_color="transparent", corner_radius=0)
         hd.pack(fill="x", pady=(0, 14))
-        icon_box = tk.Canvas(hd, width=20, height=20, bg=BG_SURFACE,
-                             highlightthickness=0)
+        # 圆角矩形图标框（对齐 HTML 原型 .panel-header-icon，r=4）
+        icon_box = ctk.CTkFrame(hd, width=20, height=20, fg_color=accent,
+                                corner_radius=4)
         icon_box.pack(side="left", padx=(0, 8))
-        icon_box.create_oval(2, 2, 18, 18, fill=accent, outline="")
-        icon_box.create_text(10, 10, text=icon, fill="white",
-                             font=(FONT_FAMILY[0], 9, "bold"))
+        icon_box.pack_propagate(False)
+        ctk.CTkLabel(icon_box, text=icon, fg_color="transparent",
+                     text_color="white", font=(FONT_FAMILY[0], 9, "bold"),
+                     width=20, height=20).place(relx=0.5, rely=0.5, anchor="center")
         tbox = ctk.CTkFrame(hd, fg_color="transparent", corner_radius=0)
         tbox.pack(side="left")
         ctk.CTkLabel(tbox, text=title, fg_color="transparent", text_color=FG_TEXT,
@@ -887,7 +889,7 @@ class NASAApp:
                            "卫星影像", "地球静止卫星实时图")
 
         ctk.CTkLabel(left, text="选择卫星", fg_color="transparent",
-                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "normal")
                      ).pack(anchor="w", pady=(0, 6))
 
         # 卫星下拉（CTkOptionMenu，值映射回 key）
@@ -908,21 +910,21 @@ class NASAApp:
         self.sat_combo.pack(fill="x", pady=(0, 10))
 
         ctk.CTkLabel(left, text="颜色模式", fg_color="transparent",
-                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "normal")
                      ).pack(anchor="w", pady=(0, 6))
         seg1 = ctk.CTkSegmentedButton(left, values=["自然色", "地球色"],
                                       command=lambda v: self._sync_seg_color(v),
                                       fg_color=BG_INPUT, selected_color=SAT_ACCENT,
                                       selected_hover_color=SAT_LIGHT,
                                       unselected_color=BG_INPUT,
-                                      text_color=FG_SECONDARY,
+                                      text_color=FG_DISABLED,
                                       font=FONT_SMALL, height=32, corner_radius=6)
         seg1.pack(fill="x", pady=(0, 10))
         seg1.set("自然色" if self.selected_color.get() == "natural_color" else "地球色")
         self._seg1 = seg1
 
         ctk.CTkLabel(left, text="分辨率", fg_color="transparent",
-                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "bold")
+                     text_color=FG_DIM, font=(FONT_FAMILY[0], 10, "normal")
                      ).pack(anchor="w", pady=(0, 6))
         self.sat_size_var = tk.StringVar(value="1080")
         seg2 = ctk.CTkSegmentedButton(left, values=["标准", "高清", "超清"],
@@ -930,7 +932,7 @@ class NASAApp:
                                       fg_color=BG_INPUT, selected_color=SAT_ACCENT,
                                       selected_hover_color=SAT_LIGHT,
                                       unselected_color=BG_INPUT,
-                                      text_color=FG_SECONDARY,
+                                      text_color=FG_DISABLED,
                                       font=FONT_SMALL, height=32, corner_radius=6)
         seg2.pack(fill="x", pady=(0, 10))
         seg2.set("高清")
@@ -1349,12 +1351,20 @@ class NASAApp:
         """更新卫星信息卡片"""
         sat = self.selected_satellite.get()
         info = GEOSTATIONARY_SATELLITES.get(sat, {})
+        # 机构映射
+        agency_map = {
+            "goes-19": "NOAA 美国", "goes-18": "NOAA 美国", "goes-16": "NOAA 美国",
+            "himawari": "JMA 日本", "gk2a": "KMA 韩国", "fy4b": "NSMC 中国"
+        }
+        # 区域映射
+        region_map = {
+            "americas": "美洲地区", "asia_pacific": "亚太地区"
+        }
         self.sat_info_label.config(
-            text=f"卫星   {info.get('name', sat)}\n"
-                 f"数据源   CIRA RAMMB-Slider\n"
-                 f"区域   {info.get('region', '-')}\n"
-                 f"更新频率   约每 10 分钟\n"
-                 f"颜色模式   自然色/地球色"
+            text=f"机构   {agency_map.get(sat, '-')}\n"
+                 f"覆盖区域   {region_map.get(info.get('region', '-'), '-')}\n"
+                 f"更新频率   每 10 分钟\n"
+                 f"数据源   CIRA Slider"
         )
 
     def _fetch_satellite(self):

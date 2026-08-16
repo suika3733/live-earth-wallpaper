@@ -36,7 +36,7 @@ GEOSTATIONARY_SATELLITES = {
     "goes-19":      {"name": "GOES-19 (美洲)",      "size": 678, "region": "americas"},
     "goes-18":      {"name": "GOES-18 (美洲西)",     "size": 678, "region": "americas"},
     "goes-16":      {"name": "GOES-16 (美洲东)",     "size": 678, "region": "americas", "source": "noaa"},
-    "himawari":     {"name": "Himawari-8 (亚太)",   "size": 688, "region": "asia_pacific"},
+    "himawari":     {"name": "向日葵 8 号 (Himawari-8)",   "size": 688, "region": "asia_pacific"},
     "gk2a":         {"name": "GK2A (韩国)",          "size": 688, "region": "asia_pacific"},
     "fy4b":         {"name": "风云四号 FY-4B (中国)", "size": 10992, "region": "asia_pacific", "source": "fy4"},
 }
