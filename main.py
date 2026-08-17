@@ -49,15 +49,15 @@ TEXT_TERTIARY = "#6B7390"
 TEXT_DISABLED = "#3D4459"
 
 # 边框 (rgba via 8-digit hex, Tk 8.6+)
-BORDER_SUBTLE = "#FFFFFF10"
-BORDER_DEFAULT = "#FFFFFF1A"
-BORDER_STRONG = "#FFFFFF29"
+BORDER_SUBTLE = "#1E2740"   # was #FFFFFF10, Tk on Windows rejects 8-digit hex
+BORDER_DEFAULT = "#2C3A5A"   # was #FFFFFF1A
+BORDER_STRONG = "#3D4459"    # was #FFFFFF29
 
 # 数据源强调色 (Data Source Accents)
-APOD_PRIMARY = "#7C5CFC"; APOD_LIGHT = "#9D7FFF"; APOD_GLOW = "#7C5CFC40"
-SAT_PRIMARY = "#00B4D8";  SAT_LIGHT = "#33C9E8";  SAT_GLOW = "#00B4D840"
-FY4_PRIMARY = "#E8453C";  FY4_LIGHT = "#FF6B60";  FY4_GLOW = "#E8453C40"
-SDO_PRIMARY = "#FF8C00";  SDO_LIGHT = "#FFAA33";  SDO_GLOW = "#FF8C0040"
+APOD_PRIMARY = "#7C5CFC"; APOD_LIGHT = "#9D7FFF"; APOD_GLOW = "#2D1E50"  # was #7C5CFC40
+SAT_PRIMARY = "#00B4D8";  SAT_LIGHT = "#33C9E8";  SAT_GLOW = "#0A2E3A"   # was #00B4D840
+FY4_PRIMARY = "#E8453C";  FY4_LIGHT = "#FF6B60";  FY4_GLOW = "#3D1518"   # was #E8453C40
+SDO_PRIMARY = "#FF8C00";  SDO_LIGHT = "#FFAA33";  SDO_GLOW = "#3A2A10"   # was #FF8C0040
 
 ACCENTS = {
     "apod":     {"primary": APOD_PRIMARY, "light": APOD_LIGHT, "glow": APOD_GLOW},
@@ -66,13 +66,13 @@ ACCENTS = {
 }
 
 # 语义色
-SUCCESS = "#4ECCA3"; SUCCESS_BG = "#4ECCA320"
+SUCCESS = "#4ECCA3"; SUCCESS_BG = "#0F2E24"  # was #4ECCA320
 WARNING = "#F9D423"
 ERROR = "#EF4444"
 INFO = "#3B82F6"
 
 # 主行动按钮 CTA
-CTA = "#E94560"; CTA_HOVER = "#FF6B81"; CTA_GLOW = "#E9456040"
+CTA = "#E94560"; CTA_HOVER = "#FF6B81"; CTA_GLOW = "#3D1518"  # was #E9456040
 
 # 字体
 FONT_SANS = ("Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Arial")
@@ -597,8 +597,8 @@ class NASAApp:
             return b
 
         make_btn("✕", self._on_close, "#E8453C")
-        make_btn("▢", self._toggle_maximize, "#FFFFFF10")
-        make_btn("—", self.root.iconify, "#FFFFFF10")
+        make_btn("▢", self._toggle_maximize, "#1E2740")
+        make_btn("—", self.root.iconify, "#1E2740")
 
         # 拖拽
         tb.bind("<Button-1>", self._on_title_drag_start)
@@ -666,7 +666,7 @@ class NASAApp:
             x = random.randint(0, 219)
             y = random.randint(0, 179)
             r = random.choice([0.7, 1.0, 1.3])
-            a = random.choice(["#FFFFFF30", "#FFFFFF50", "#9D7FFF40", "#33C9E840"])
+            a = random.choice(["#6B7390", "#A8B0C8", "#9D7FFF", "#33C9E8"])
             stars.create_oval(x, y, x + r, y + r, fill=a, outline="")
 
         # 品牌区
@@ -768,18 +768,18 @@ class NASAApp:
         prev_label.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         # 底部信息条
-        overlay = tk.Frame(prev_container, bg="#0B0F1AE0")
+        overlay = tk.Frame(prev_container, bg="#0B0F1A")
         overlay.place(relx=0, rely=1, relwidth=1, height=58, anchor="sw")
-        otitle = tk.Label(overlay, text="", bg="#0B0F1AE0", fg="white",
+        otitle = tk.Label(overlay, text="", bg="#0B0F1A", fg="white",
                           font=F(13, "bold"), anchor="w", padx=16)
         otitle.pack(fill="x", padx=0, pady=(6, 0))
-        ometa = tk.Label(overlay, text="", bg="#0B0F1AE0",
-                         fg="#FFFFFFB0", font=FONT_SMALL, anchor="w", padx=16)
+        ometa = tk.Label(overlay, text="", bg="#0B0F1A",
+                         fg="#A8B0C8", font=FONT_SMALL, anchor="w", padx=16)
         ometa.pack(fill="x")
 
         # 水印
         watermark = tk.Label(prev_container, text=f"RealEarth · {source.upper()}",
-                             bg=BG_CARD, fg="#FFFFFF90",
+                             bg=BG_CARD, fg="#A8B0C8",
                              font=(FONT_MONO[0], 10))
         watermark.place(relx=1.0, rely=0.0, x=-16, y=12, anchor="ne")
 
@@ -980,7 +980,7 @@ class NASAApp:
             lbl = tk.Label(row, text=info["name"], bg=BG_SURFACE, fg=TEXT_SECONDARY,
                            font=FONT_SMALL, anchor="w")
             lbl.pack(side="left", fill="x", expand=True)
-            wtag = tk.Label(row, text=wl, bg="#FF8C0014", fg=SDO_LIGHT,
+            wtag = tk.Label(row, text=wl, bg="#3A2A10", fg=SDO_LIGHT,
                             font=(FONT_MONO[0], 9), padx=5, pady=1)
             wtag.pack(side="right", padx=(4, 2))
             for w in (row, dot, lbl, wtag):
