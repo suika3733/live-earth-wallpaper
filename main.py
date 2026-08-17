@@ -182,7 +182,7 @@ class ModernButton(tk.Canvas):
 class SegmentedControl(tk.Canvas):
     def __init__(self, parent, options, variable, accent=APOD_PRIMARY,
                  command=None, height=30, font=FONT_SECONDARY):
-        self._options = options
+        self._opts = options
         self._var = variable
         self._accent = accent
         self._command = command
@@ -206,12 +206,12 @@ class SegmentedControl(tk.Canvas):
         self.delete("all")
         W = self.winfo_width() or self._total_w
         _round_rect(self, 0, 0, W, self._h, 6, fill=BG_INPUT, outline="")
-        n = len(self._options)
+        n = len(self._opts)
         if n == 0:
             return
         seg_w = (W - 6) / n
         x = 3
-        for val, lab in self._options:
+        for val, lab in self._opts:
             sel = (self._var.get() == val)
             if sel:
                 _round_rect(self, x, 3, x + seg_w, self._h - 3, 4, fill=self._accent, outline="")
@@ -222,13 +222,13 @@ class SegmentedControl(tk.Canvas):
 
     def _on_click(self, e):
         W = self.winfo_width() or self._total_w
-        n = len(self._options)
+        n = len(self._opts)
         if n == 0:
             return
         seg_w = (W - 6) / n
         idx = int((e.x - 3) / seg_w)
         if 0 <= idx < n:
-            val = self._options[idx][0]
+            val = self._opts[idx][0]
             if self._var.get() != val:
                 self._var.set(val)
                 self._draw()
@@ -367,7 +367,7 @@ class Dropdown(tk.Frame):
                  width=180, accent=SAT_PRIMARY):
         super().__init__(parent, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT,
                          highlightthickness=1)
-        self._options = options
+        self._opts = options
         self._var = variable
         self._on_change = on_change
         self._accent = accent
@@ -385,7 +385,7 @@ class Dropdown(tk.Frame):
 
     def _sync_text(self):
         key = self._var.get()
-        name = dict(self._options).get(key, key)
+        name = dict(self._opts).get(key, key)
         self._btn.config(text=name)
 
     def _toggle(self, e=None):
@@ -406,7 +406,7 @@ class Dropdown(tk.Frame):
         pop.geometry(f"+{x}+{y}")
         pop.config(bg=BG_ELEVATED, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         self._pop = pop
-        for key, name in self._options:
+        for key, name in self._opts:
             row = tk.Frame(pop, bg=BG_ELEVATED)
             row.pack(fill="x")
             dot = tk.Label(row, text="●", fg=self._accent, bg=BG_ELEVATED,
