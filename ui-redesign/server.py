@@ -32,7 +32,7 @@ from nasa_api import fetch_apod_range, fetch_apod, download_image, ApodImage
 from categorizer import categorize_image, get_category_name, get_all_category_keys
 from wallpaper import set_wallpaper, set_wallpaper_style, watermark_image
 from scheduler import start_scheduler, stop_scheduler, is_scheduler_running
-from providers import GEOSTATIONARY_SATELLITES, SDO_BANDS, fetch_satellite_image, fetch_sdo_image
+from providers import GEOSTATIONARY_SATELLITES, SDO_BANDS, fetch_satellite_image, fetch_sdo_image, fetch_fy4_image, FY4_ENDPOINTS, FY4_RESOLUTIONS
 from providers.sdo import test_sdo_connectivity
 from autostart import set_autostart, is_autostart_enabled
 
@@ -156,6 +156,7 @@ def api_save_config():
         "api_key", "selected_category", "auto_update", "update_time",
         "hd", "data_source", "satellite_id", "satellite_color",
         "satellite_size", "satellite_auto_refresh", "satellite_refresh_interval",
+        "fy4_satellite", "fy4_resolution", "fy4_auto_refresh", "fy4_refresh_interval",
         "sdo_band", "sdo_size", "sdo_auto_refresh", "sdo_refresh_interval",
         "wallpaper_style", "autostart",
         "wm_font_size", "wm_font_family", "wm_position", "wm_show_sys_time",
@@ -336,6 +337,47 @@ def api_satellite_fetch():
         })
     except Exception as e:
         logger.error(f"Satellite fetch failed: {e}")
+        _task_status = {"running": False, "message": f"获取失败: {e}", "type": "error"}
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ================================================================
+#  FY-4B 风云四号
+# ================================================================
+
+@app.route("/api/fy4/fetch", methods=["POST"])
+def api_fy4_fetch():
+    """获取风云四号全圆盘图"""
+    global _task_status
+    _task_status = {"running": True, "message": "正在获取风云四号影像...", "type": "loading"}
+
+    try:
+        data = request.get_json(force=True) or {}
+        satellite = data.get("satellite_id", "fy4b")
+        resolution = data.get("resolution", "hd")
+
+        path = fetch_fy4_image(satellite=satellite, resolution=resolution)
+        if not path:
+            _task_status = {"running": False, "message": "风云四号影像获取失败", "type": "error"}
+            return jsonify({"ok": False, "error": "下载失败"}), 500
+
+        fy4_info = FY4_ENDPOINTS.get(satellite, {})
+        fy4_name = fy4_info.get("name", satellite)
+
+        _task_status = {
+            "running": False,
+            "message": f"风云四号影像已更新 | {fy4_name}",
+            "type": "ok",
+        }
+        return jsonify({
+            "ok": True,
+            "path": path,
+            "url": _cache_path_to_url(path),
+            "satellite": satellite,
+            "satellite_name": fy4_name,
+        })
+    except Exception as e:
+        logger.error(f"FY-4 fetch failed: {e}")
         _task_status = {"running": False, "message": f"获取失败: {e}", "type": "error"}
         return jsonify({"ok": False, "error": str(e)}), 500
 
@@ -553,7 +595,7 @@ def api_logs_read():
 @app.route("/api/version")
 def api_version():
     """返回当前版本号"""
-    return jsonify({"version": "v3.0.6"})
+    return jsonify({"version": "v1.0.0"})
 
 
 # ================================================================

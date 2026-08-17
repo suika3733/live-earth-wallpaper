@@ -125,6 +125,18 @@ def _get_logo_path():
     return None
 
 
+def _get_ico_path():
+    """查找 ico 图标路径（用于窗口/任务栏图标）"""
+    candidates = [
+        BASE_DIR / "logo.ico",                   # FROZEN: MEIPASS/logo.ico
+        BASE_DIR / "ui-redesign" / "logo.ico",  # 开发: ui-redesign/logo.ico
+    ]
+    for p in candidates:
+        if p.exists():
+            return str(p)
+    return None
+
+
 def _create_tray_image():
     from PIL import Image, ImageDraw
 
@@ -232,18 +244,23 @@ def main():
 
         api = WindowAPI()
 
-        _window = webview.create_window(
+        _icon_path = _get_ico_path()
+        _window_kwargs = dict(
             title="RealEarth — 真实地球",
             url=SERVER_URL,
-            width=1180,
-            height=760,
-            min_size=(860, 580),
+            width=1280,
+            height=800,
+            min_size=(1000, 640),
             resizable=True,
             frameless=True,
             easy_drag=False,
             confirm_close=False,
             js_api=api,
         )
+        if _icon_path:
+            _window_kwargs["icon"] = _icon_path
+
+        _window = webview.create_window(**_window_kwargs)
 
         _window.events.closing += _on_window_closing
         _window.events.maximized += _on_window_maximized

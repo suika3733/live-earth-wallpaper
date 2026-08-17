@@ -6,263 +6,151 @@
 <title>RealEarth — 真实地球</title>
 <style>
 /* ============================================================
-   DESIGN SYSTEM: REALEARTH 真实地球
+   REALEARTH — Cosmic Observatory 设计系统 v5.0
    ============================================================ */
 
-/* ----- Design Tokens ----- */
 :root {
-  /* Void palette — deep space background */
-  --void-900: #080810;
-  --void-800: #0c0c18;
-  --void-700: #111122;
-  --void-600: #161630;
-  --void-500: #1e1e3a;
+  /* Base Surfaces */
+  --bg-app: #080B14;
+  --bg-surface: #0D1220;
+  --bg-card: #131A2B;
+  --bg-card-hover: #1A2238;
+  --bg-elevated: #1E2740;
+  --bg-input: #0F1626;
 
-  /* Surface palette */
-  --surface: #12121f;
-  --surface-elevated: #181830;
-  --surface-hover: #1e1e3e;
+  /* Sidebar */
+  --bg-sidebar: #0A0E1A;
+  --bg-sidebar-hover: #141A2E;
 
   /* Text */
-  --text-primary: #e4e4f0;
-  --text-secondary: #8888a8;
-  --text-muted: #5a5a78;
-  --text-inverse: #0c0c18;
-
-  /* Accent colors — one per data source */
-  --accent-apod: #c9a96e;    /* warm starlight gold */
-  --accent-apod-dim: #3d3220;
-  --accent-sat: #4dab9a;     /* Earth teal */
-  --accent-sat-dim: #1a3a32;
-  --accent-sdo: #e07040;     /* solar orange */
-  --accent-sdo-dim: #3d2010;
-
-  /* Semantic */
-  --success: #5cb878;
-  --success-dim: #1a3828;
-  --warning: #d4a843;
-  --warning-dim: #3d3010;
-  --error: #d45252;
-  --error-dim: #3d1818;
-  --info: #5a8ac8;
-  --info-dim: #182838;
+  --text-primary: #E8ECF4;
+  --text-secondary: #A8B0C8;
+  --text-tertiary: #6B7390;
+  --text-disabled: #3D4459;
 
   /* Borders */
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong: rgba(255,255,255,0.16);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-glow-apod: 0 0 40px rgba(201, 169, 110, 0.12);
-  --shadow-glow-sat: 0 0 40px rgba(77, 171, 154, 0.12);
-  --shadow-glow-sdo: 0 0 40px rgba(224, 112, 64, 0.12);
+  /* Data Source Accents */
+  --apod-primary: #7C5CFC;  --apod-light: #9D7FFF;  --apod-glow: rgba(124,92,252,0.25);
+  --sat-primary: #00B4D8;   --sat-light: #33C9E8;   --sat-glow: rgba(0,180,216,0.25);
+  --fy4-primary: #E8453C;   --fy4-light: #FF6B60;   --fy4-glow: rgba(232,69,60,0.25);
+  --sdo-primary: #FF8C00;   --sdo-light: #FFAA33;   --sdo-glow: rgba(255,140,0,0.25);
 
-  /* Spacing */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
+  /* Semantic */
+  --success: #4ECCA3;  --success-bg: rgba(78,204,163,0.12);
+  --warning: #F9D423;  --error: #EF4444;  --info: #3B82F6;
+
+  /* CTA */
+  --cta: #E94560;  --cta-hover: #FF6B81;
 
   /* Typography */
-  --font-sans: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
-  --font-mono: "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace;
+  --font-sans: "Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", "Consolas", monospace;
 
-  --text-xs: 0.6875rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.9375rem;
-  --text-lg: 1.0625rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 2rem;
+  /* Sizing */
+  --sidebar-w: 220px;  --control-w: 210px;
+  --titlebar-h: 36px;  --statusbar-h: 28px;
 
-  --leading-tight: 1.2;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.7;
-
-  --weight-normal: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-
-  /* Radii */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Radius */
+  --r-sm: 4px;  --r-md: 6px;  --r-lg: 10px;  --r-xl: 14px;
 
   /* Transitions */
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
-  --duration-fast: 150ms;
-  --duration-normal: 250ms;
-  --duration-slow: 400ms;
-  --duration-glacial: 600ms;
+  --t-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-normal: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Layout */
-  --header-h: 52px;
-  --sidebar-w: 172px;
-  --statusbar-h: 30px;
+  /* Dynamic accents (injected per-panel) */
+  --seg-accent: var(--apod-primary);
+  --seg-glow: var(--apod-glow);
 }
 
 /* ----- Reset & Base ----- */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  height: 100%;
-  overflow: hidden;
-}
+html, body { height: 100%; overflow: hidden; }
 
 body {
   font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: var(--leading-normal);
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--text-primary);
-  background: var(--void-900);
+  background: var(--bg-app);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   user-select: none;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar { width: 6px; }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+.control-panel::-webkit-scrollbar { width: 4px; }
 
 /* ============================================================
    APP SHELL
    ============================================================ */
-.app {
+.window {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  background: var(--void-900);
+  height: 100vh;
+  background: var(--bg-app);
 }
 
-/* ----- Header ----- */
-.header {
-  height: var(--header-h);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-subtle);
+/* ----- Title Bar (36px) ----- */
+.titlebar {
+  height: var(--titlebar-h);
+  background: var(--bg-sidebar);
   display: flex;
   align-items: center;
-  padding: 0 var(--space-5);
-  gap: 0;
+  padding: 0 0 0 14px;
   flex-shrink: 0;
-  z-index: 100;
+  -webkit-app-region: no-drag;
 }
+.titlebar.pywebview-drag-region { -webkit-app-region: drag; }
+.titlebar.pywebview-drag-region button { -webkit-app-region: no-drag; }
 
-.header-brand {
+.titlebar-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin-right: var(--space-6);
+  gap: 8px;
+  -webkit-app-region: no-drag;
 }
 
-.header-logo {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-  color: var(--text-primary);
-  letter-spacing: 0.01em;
-}
-.header-subtitle {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
-}
-
-/* Version tag in header */
-.version-tag {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  color: var(--accent-primary);
-  background: rgba(77, 171, 154, 0.12);
-  padding: 1px 8px;
-  border-radius: var(--radius-sm);
-  margin-left: 6px;
-  vertical-align: middle;
-  letter-spacing: 0.02em;
-}
-
-/* Source tabs in header */
-.source-tabs {
-  display: flex;
-  gap: 2px;
-  background: var(--void-800);
-  border-radius: var(--radius-md);
-  padding: 3px;
-}
-
-.source-tab {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border-radius: 6px;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out-quart);
-  border: none;
-  background: transparent;
-  font-family: var(--font-sans);
-  white-space: nowrap;
-}
-.source-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
-.source-tab.active { color: var(--text-primary); background: var(--void-600); }
-
-.source-tab.apod-tab.active { color: var(--accent-apod); }
-.source-tab.sat-tab.active { color: var(--accent-sat); }
-.source-tab.sdo-tab.active { color: var(--accent-sdo); }
-
-.tab-dot {
-  width: 7px;
-  height: 7px;
+.brand-icon {
+  width: 16px; height: 16px;
   border-radius: 50%;
+  background: linear-gradient(135deg, #2D8CF0, #4ECCA3);
+  position: relative;
   flex-shrink: 0;
 }
-.tab-dot.apod-dot { background: var(--accent-apod); }
-.tab-dot.sat-dot { background: var(--accent-sat); }
-.tab-dot.sdo-dot { background: var(--accent-sdo); }
+.brand-icon::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.7);
+}
 
-.header-actions {
+.brand-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+
+.titlebar-actions {
   margin-left: auto;
   display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-/* ----- Window Controls (frameless window) ----- */
-.window-controls {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: var(--space-2);
+  height: 100%;
+  -webkit-app-region: no-drag;
 }
 
 .win-btn {
-  width: 30px;
-  height: 30px;
+  width: 46px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -270,834 +158,843 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--duration-fast) var(--ease-out-quart);
+  transition: background var(--t-fast);
   padding: 0;
 }
+.win-btn:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
+.win-btn.win-close:hover { background: #E8453C; color: white; }
 
-.win-btn:hover {
-  background: rgba(255,255,255,0.08);
-  color: var(--text-primary);
-}
+body:not(.pywebview) .window-controls { display: none !important; }
 
-.win-btn.win-close:hover {
-  background: var(--error);
-  color: white;
-}
-
-/* Hide window controls in browser (non-pywebview) */
-body:not(.pywebview) .window-controls {
-  display: none !important;
-}
-
-/* ----- Body ----- */
-.body {
+/* ============================================================
+   MAIN REGION
+   ============================================================ */
+.main {
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-/* ----- Sidebar ----- */
+/* ----- Sidebar (220px) ----- */
 .sidebar {
   width: var(--sidebar-w);
-  background: var(--void-800);
+  background: var(--bg-sidebar);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  overflow-y: auto;
-}
-
-.sidebar-section {
-  padding: var(--space-4) var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.sidebar-section:last-child { border-bottom: none; }
-
-.sidebar-label {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: var(--space-3);
-  padding: 0 var(--space-2);
-}
-
-/* Category list */
-.cat-list { display: flex; flex-direction: column; gap: 1px; }
-
-.cat-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-2) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out-quart);
   position: relative;
+  overflow: hidden;
 }
-.cat-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
-.cat-item.active {
-  color: var(--accent-apod);
-  background: var(--accent-apod-dim);
-}
-.cat-item.active::before {
+.sidebar::before {
   content: '';
   position: absolute;
-  left: 0;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background: var(--accent-apod);
-  border-radius: 1px;
+  top: 0; left: 0; right: 0;
+  height: 180px;
+  pointer-events: none;
+  opacity: 0.6;
+  background:
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.6), transparent 60%),
+    radial-gradient(1px 1px at 70% 15%, rgba(255,255,255,0.4), transparent 60%),
+    radial-gradient(1.5px 1.5px at 45% 55%, rgba(255,255,255,0.3), transparent 60%),
+    radial-gradient(1px 1px at 85% 70%, rgba(255,255,255,0.5), transparent 60%),
+    radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.35), transparent 60%);
 }
 
-.cat-count {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  background: var(--void-700);
-  padding: 1px 6px;
-  border-radius: 10px;
-  min-width: 24px;
-  text-align: center;
-}
-.cat-item.active .cat-count {
-  background: rgba(201,169,110,0.15);
-  color: var(--accent-apod);
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px 16px;
 }
 
-/* Satellite sidebar */
-.sat-select-group {
-  margin-bottom: var(--space-3);
-}
-.sat-select-group:last-child { margin-bottom: 0; }
-
-.sat-select-label {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  margin-bottom: var(--space-1);
-  padding: 0 var(--space-1);
-  letter-spacing: 0.03em;
+.earth-ball {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #4ECCA3, #2D8CF0 60%, #0d2540);
+  box-shadow: inset -4px -4px 10px rgba(0,0,0,0.5), 0 0 12px rgba(45,140,240,0.4);
+  flex-shrink: 0;
 }
 
-.select-styled {
-  width: 100%;
-  padding: var(--space-2) var(--space-2);
-  background: var(--void-700);
+.brand-text { display: flex; flex-direction: column; }
+.brand-title {
+  font-size: 16px; font-weight: 700;
+  letter-spacing: -0.3px;
   color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  font-family: var(--font-sans);
-  cursor: pointer;
-  outline: none;
-  transition: border-color var(--duration-fast);
+  line-height: 1.2;
 }
-.select-styled:focus { border-color: var(--accent-sat); }
+.brand-sub {
+  font-size: 10px; font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
 
-.radio-group {
+.sidebar-section-label {
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-tertiary);
+  padding: 4px 16px 8px;
+}
+
+.nav-list { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--t-fast);
+  position: relative;
+}
+.nav-item:hover { background: var(--bg-sidebar-hover); color: var(--text-primary); }
+.nav-item.active {
+  background: var(--bg-sidebar-hover);
+  color: var(--text-primary);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 20px;
+  border-radius: 0 3px 3px 0;
+  background: var(--nav-accent, var(--apod-primary));
+  box-shadow: 0 0 8px var(--nav-glow, var(--apod-glow));
+}
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--nav-accent, var(--text-tertiary)); }
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--nav-accent-bg, rgba(255,255,255,0.08));
+  color: var(--nav-accent, var(--text-tertiary));
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 12px 10px;
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-
-.radio-item {
+.sidebar-bottom-btn {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--t-fast);
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--font-sans);
+  width: 100%;
+}
+.sidebar-bottom-btn:hover { background: var(--bg-sidebar-hover); color: var(--text-primary); }
+.sidebar-bottom-btn svg { width: 16px; height: 16px; }
+
+.sidebar-version {
+  font-size: 10px;
+  color: var(--text-disabled);
+  padding: 8px 12px 0;
+  letter-spacing: 0.3px;
+}
+
+/* ----- Content Region ----- */
+.content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Panel switching */
+.panel {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+.panel.active { display: flex; }
+
+/* ----- Control Panel (210px) ----- */
+.control-panel {
+  width: var(--control-w);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  padding: 16px 14px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.panel-icon {
+  width: 20px; height: 20px;
+  border-radius: var(--r-sm);
+  background: var(--seg-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.panel-icon svg { width: 14px; height: 14px; color: var(--seg-accent); }
+.panel-header-text { display: flex; flex-direction: column; }
+.panel-title { font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+.panel-subtitle { font-size: 11px; color: var(--text-tertiary); }
+
+.control-group { display: flex; flex-direction: column; gap: 6px; }
+.control-label {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+
+/* ----- Info Card ----- */
+.info-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  padding: 12px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+.info-card-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.info-card-row .v { color: var(--text-secondary); font-weight: 500; text-align: right; }
+.info-card.fy4-notice { border-color: rgba(232,69,60,0.3); color: var(--fy4-light); }
+
+/* ----- List (categories / bands) ----- */
+.cat-list { display: flex; flex-direction: column; gap: 1px; }
+.cat-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--duration-fast);
+  transition: all var(--t-fast);
 }
-.radio-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.03); }
-.radio-item.selected { color: var(--accent-sat); }
+.cat-item:hover { background: var(--bg-card); color: var(--text-primary); }
+.cat-item.active { background: var(--apod-glow); color: var(--apod-light); }
+.cat-count {
+  font-size: 10px; font-weight: 600;
+  color: var(--text-tertiary);
+  min-width: 20px; text-align: center;
+}
+.cat-item.active .cat-count { color: var(--apod-primary); }
 
-.radio-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--border-strong);
-  position: relative;
-  flex-shrink: 0;
-  transition: border-color var(--duration-fast);
-}
-.radio-item.selected .radio-dot { border-color: var(--accent-sat); }
-.radio-item.selected .radio-dot::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 50%;
-  background: var(--accent-sat);
-}
-
-/* Info card in sidebar */
-.sidebar-info {
-  margin-top: auto;
-  padding: var(--space-3);
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  margin: var(--space-3);
-}
-
-.sidebar-info-title {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  color: var(--text-muted);
-  margin-bottom: var(--space-2);
-  letter-spacing: 0.04em;
-}
-.sidebar-info-text {
-  font-size: var(--text-xs);
+.band-list { display: flex; flex-direction: column; gap: 1px; }
+.band-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  font-size: 11px;
   color: var(--text-secondary);
-  line-height: var(--leading-relaxed);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.band-item:hover { background: var(--bg-card); color: var(--text-primary); }
+.band-item.active { background: var(--sdo-glow); color: var(--sdo-light); }
+.band-wavelength {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255,140,0,0.12);
+  color: var(--sdo-light);
+  flex-shrink: 0;
 }
 
-/* ----- Main Content ----- */
-.main {
+/* ----- Preview Column ----- */
+.preview-column {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--void-900);
+  min-width: 0;
 }
 
-/* Panel system */
-.panel {
-  flex: 1;
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-}
-.panel.visible { display: flex; }
-
-/* Preview area */
 .preview-area {
   flex: 1;
-  position: relative;
-  background: var(--void-800);
-  margin: var(--space-3);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  min-height: 0;
+  padding: 16px;
+  display: flex;
+}
+
+.preview-container {
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-card);
   border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Placeholder imagery */
+/* Placeholder gradients */
 .preview-placeholder {
-  width: 100%;
-  height: 100%;
   position: absolute;
   inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
-
 .preview-placeholder.apod-bg {
-  background:
-    radial-gradient(600px 300px at 20% 30%, rgba(201,169,110,0.06) 0%, transparent 70%),
-    radial-gradient(400px 200px at 70% 60%, rgba(100,140,200,0.05) 0%, transparent 70%),
-    radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.9), transparent),
-    radial-gradient(1px 1px at 25% 45%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1px 1px at 40% 15%, rgba(255,255,255,0.8), transparent),
-    radial-gradient(1px 1px at 55% 35%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 70% 25%, rgba(255,255,255,0.9), transparent),
-    radial-gradient(1px 1px at 80% 55%, rgba(255,255,255,0.7), transparent),
-    radial-gradient(1.5px 1.5px at 33% 65%, rgba(255,255,255,0.85), transparent),
-    radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,0.6), transparent),
-    radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.75), transparent),
-    radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.8), transparent),
-    linear-gradient(180deg, var(--void-800) 0%, #0c1428 40%, #0a0f1e 100%);
+  background-image:
+    radial-gradient(circle at 30% 40%, rgba(124,92,252,0.25), transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(157,127,255,0.15), transparent 45%),
+    radial-gradient(1px 1px at 25% 25%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 60% 30%, #fff, transparent 60%),
+    radial-gradient(1.5px 1.5px at 45% 65%, #fff, transparent 60%),
+    radial-gradient(1px 1px at 80% 45%, #fff, transparent 60%),
+    linear-gradient(135deg, #0d0a1f, #171233);
 }
-
 .preview-placeholder.sat-bg {
   background:
-    radial-gradient(ellipse 80% 60% at 50% 45%, #1a4a6e 0%, #0d2b45 40%, #0a1f35 70%, var(--void-800) 100%),
-    radial-gradient(ellipse 40% 25% at 30% 35%, rgba(77,171,154,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 30% 20% at 70% 50%, rgba(77,171,154,0.06) 0%, transparent 60%);
+    radial-gradient(circle at 50% 50%, transparent 0, transparent 150px, rgba(0,180,216,0.25) 152px, transparent 155px),
+    radial-gradient(circle at 50% 50%, #0b3a5c 0, #064663 45%, #032a3d 70%, transparent 72%),
+    linear-gradient(135deg, #050d1a, #081728);
 }
-
+.preview-placeholder.fy4-bg {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0, transparent 170px, rgba(232,69,60,0.25) 172px, transparent 175px),
+    radial-gradient(circle at 50% 50%, #2a120d 0, #3a1a10 45%, #1c0d08 70%, transparent 72%),
+    linear-gradient(135deg, #0a0505, #160a08);
+}
 .preview-placeholder.sdo-bg {
   background:
-    radial-gradient(circle 45% at 50% 50%, rgba(224,112,64,0.15) 0%, rgba(200,80,30,0.08) 30%, rgba(180,60,20,0.03) 55%, var(--void-800) 100%),
-    radial-gradient(circle 20% at 50% 50%, rgba(255,200,100,0.2) 0%, transparent 40%);
-}
-
-/* Nebula cloud effect for APOD */
-.nebula-cloud {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.3;
-  animation: nebulaDrift 20s ease-in-out infinite alternate;
-}
-.nebula-cloud:nth-child(1) {
-  width: 300px; height: 180px;
-  background: radial-gradient(ellipse, rgba(180,140,200,0.15), transparent);
-  top: 20%; left: 15%;
-}
-.nebula-cloud:nth-child(2) {
-  width: 250px; height: 200px;
-  background: radial-gradient(ellipse, rgba(100,160,200,0.12), transparent);
-  top: 45%; left: 60%;
-  animation-delay: -7s;
-  animation-duration: 25s;
-}
-.nebula-cloud:nth-child(3) {
-  width: 200px; height: 140px;
-  background: radial-gradient(ellipse, rgba(201,169,110,0.1), transparent);
-  top: 55%; left: 25%;
-  animation-delay: -12s;
-  animation-duration: 18s;
-}
-
-@keyframes nebulaDrift {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(20px, -15px) scale(1.08); }
-}
-
-/* Image overlay info */
-.preview-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--space-5) var(--space-6);
-  background: linear-gradient(transparent, rgba(8,8,16,0.85) 40%);
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  pointer-events: none;
-}
-
-.preview-meta { display: flex; flex-direction: column; gap: var(--space-1); }
-.preview-title { font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: 0.01em; }
-.preview-date { font-size: var(--text-sm); color: var(--text-secondary); }
-.preview-copyright { font-size: var(--text-xs); color: var(--text-muted); }
-
-.preview-resolution {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  background: rgba(0,0,0,0.5);
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-sm);
-  pointer-events: none;
+    radial-gradient(circle at 50% 50%, #ffd54f 0, #ff8c00 40%, #e65100 65%, transparent 72%),
+    radial-gradient(circle at 50% 50%, transparent 0, transparent 155px, rgba(255,140,0,0.3) 157px, transparent 160px),
+    linear-gradient(135deg, #0d0805, #1a0e06);
 }
 
 /* Empty state */
 .empty-state {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-  text-align: center;
+  gap: 8px;
   z-index: 1;
-  padding: var(--space-10);
 }
-
 .empty-icon {
-  width: 56px;
-  height: 56px;
+  width: 48px; height: 48px;
   border-radius: 50%;
+  background: var(--bg-elevated);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  opacity: 0.5;
+  margin-bottom: 4px;
 }
-.empty-icon.apod-ei { background: var(--accent-apod-dim); }
-.empty-icon.sat-ei { background: var(--accent-sat-dim); }
-.empty-icon.sdo-ei { background: var(--accent-sdo-dim); }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.empty-desc { font-size: 12px; color: var(--text-tertiary); max-width: 320px; text-align: center; }
 
-.empty-title {
-  font-size: var(--text-lg);
-  font-weight: var(--weight-medium);
-  color: var(--text-secondary);
-}
-.empty-desc {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  max-width: 320px;
-  line-height: var(--leading-relaxed);
-}
-
-/* ----- Bottom Control Bar ----- */
-.control-bar {
-  height: 52px;
-  background: var(--surface);
-  border-top: 1px solid var(--border-subtle);
+/* Preview overlay */
+.preview-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 12px 16px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
   display: flex;
-  align-items: center;
-  padding: 0 var(--space-5);
-  gap: var(--space-3);
+  justify-content: space-between;
+  align-items: flex-end;
+  z-index: 2;
+}
+.preview-title {
+  font-size: 13px; font-weight: 600; color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.preview-meta {
+  font-size: 11px; color: rgba(255,255,255,0.7);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  margin-top: 2px;
+}
+.preview-resolution {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  padding: 2px 6px;
   flex-shrink: 0;
 }
 
-.control-group { display: flex; align-items: center; gap: var(--space-2); }
-.control-group.right { margin-left: auto; }
+.preview-watermark {
+  position: absolute;
+  top: 12px; right: 16px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: rgba(255,255,255,0.6);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  z-index: 2;
+}
 
-/* Navigation */
-.nav-group {
+/* Loading */
+.preview-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(8,11,20,0.8);
+  z-index: 3;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.preview-loading.show { display: flex; }
+.spinner {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--seg-accent);
+  animation: spin 0.8s linear infinite;
+}
+.loading-text { font-size: 12px; color: var(--text-secondary); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(78,204,163,0.5); }
+  50% { opacity: 0.5; box-shadow: 0 0 0 4px rgba(78,204,163,0); }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ----- Action Bar (40px) ----- */
+.action-bar {
+  height: 40px;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  background: var(--void-800);
-  border-radius: var(--radius-md);
-  padding: 2px;
+  gap: 8px;
+  padding: 0 16px;
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
+.action-bar .spacer { flex: 1; }
 
-.page-indicator {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  padding: 0 var(--space-3);
-  font-variant-numeric: tabular-nums;
-  min-width: 70px;
-  text-align: center;
-}
-
-/* Buttons */
+/* ----- Buttons ----- */
 .btn {
+  height: 34px;
+  border-radius: var(--r-md);
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  height: 36px;
-  border-radius: var(--radius-md);
+  padding: 0 14px;
+  cursor: pointer;
+  border: none;
+  transition: all var(--t-fast);
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out-quart);
   white-space: nowrap;
-  outline: none;
-  position: relative;
-  overflow: hidden;
 }
+.btn svg { width: 14px; height: 14px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.btn:focus-visible {
-  outline: 2px solid var(--accent-apod);
-  outline-offset: 2px;
-}
+.btn-primary { background: var(--cta); color: #fff; }
+.btn-primary:hover { background: var(--cta-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(233,69,96,0.3); }
 
-.btn:active { transform: scale(0.97); }
+.btn-accent { background: var(--seg-accent); color: #fff; }
+.btn-accent:hover { filter: brightness(1.15); transform: translateY(-1px); box-shadow: 0 4px 12px var(--seg-glow); }
 
-.btn-icon {
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  border-radius: var(--radius-md);
-}
-.btn-icon.small { width: 30px; height: 30px; border-radius: var(--radius-sm); }
-
-/* Button variants */
-.btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
-  border-color: var(--border-default);
-}
-.btn-ghost:hover { color: var(--text-primary); background: var(--surface-hover); border-color: var(--border-strong); }
-
-.btn-primary {
-  background: var(--accent-apod);
-  color: var(--text-inverse);
-  font-weight: var(--weight-semibold);
-}
-.btn-primary:hover { filter: brightness(1.15); }
-
-.btn-sat {
-  background: var(--accent-sat);
-  color: var(--text-inverse);
-  font-weight: var(--weight-semibold);
-}
-.btn-sat:hover { filter: brightness(1.15); }
-
-.btn-sdo {
-  background: var(--accent-sdo);
-  color: var(--text-inverse);
-  font-weight: var(--weight-semibold);
-}
-.btn-sdo:hover { filter: brightness(1.15); }
-
-.btn-accent {
-  background: var(--info);
-  color: white;
-  font-weight: var(--weight-semibold);
-}
-.btn-accent:hover { filter: brightness(1.15); }
-
-.btn-success {
-  background: var(--success);
-  color: var(--text-inverse);
-  font-weight: var(--weight-semibold);
-}
-.btn-success:hover { filter: brightness(1.15); }
-
-.btn-danger {
-  background: transparent;
-  color: var(--error);
-  border-color: var(--error-dim);
-}
-.btn-danger:hover { background: var(--error-dim); border-color: var(--error); }
-
-/* Auto-refresh toggle styling */
-.auto-toggle {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  background: var(--void-800);
-}
-.auto-toggle:hover { color: var(--text-primary); }
-.auto-toggle.on { color: var(--success); }
-
-.auto-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  transition: all var(--duration-normal);
-}
-.auto-toggle.on .auto-dot {
-  background: var(--success);
-  box-shadow: 0 0 8px rgba(92,184,120,0.5);
-}
-
-.countdown {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  padding: var(--space-1) var(--space-3);
-}
-
-/* ----- Status Bar ----- */
-.status-bar {
-  height: var(--statusbar-h);
-  background: var(--void-800);
-  border-top: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  padding: 0 var(--space-5);
-  flex-shrink: 0;
-}
-
-.status-text {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  transition: background var(--duration-normal);
-}
-.status-dot.ok { background: var(--success); }
-.status-dot.loading { background: var(--warning); animation: pulse-dot 1.2s ease-in-out infinite; }
-.status-dot.error { background: var(--error); }
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-.status-update {
-  margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-/* ----- Modal / Dialog ----- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(4, 4, 8, 0.75);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn var(--duration-normal) var(--ease-out-quart);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modal {
-  background: var(--surface);
+.btn-secondary {
+  background: var(--bg-card);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  width: 90%;
-  max-width: 460px;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-lg);
-  animation: modalIn var(--duration-slow) var(--ease-out-expo);
+  color: var(--text-secondary);
+}
+.btn-secondary:hover { background: var(--bg-card-hover); border-color: var(--border-strong); color: var(--text-primary); }
+
+.btn-success { background: var(--success); color: #0a1a14; }
+.btn-success:hover { filter: brightness(1.1); }
+
+.btn-ghost { background: transparent; color: var(--text-tertiary); }
+.btn-ghost:hover { background: var(--bg-card); color: var(--text-primary); }
+
+.btn-icon { width: 30px; height: 30px; padding: 0; }
+
+/* Toggle button (auto-refresh) */
+.btn-toggle {
+  background: var(--success-bg);
+  border: 1px solid rgba(78,204,163,0.3);
+  color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-toggle .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s ease-in-out infinite; }
+.btn-toggle.off {
+  background: var(--bg-card);
+  border-color: var(--border-default);
+  color: var(--text-tertiary);
+}
+.btn-toggle.off .dot { background: var(--text-disabled); animation: none; }
+
+/* ----- Segmented Control ----- */
+.segmented {
+  display: flex;
+  background: var(--bg-input);
+  border-radius: var(--r-md);
+  padding: 3px;
+  gap: 2px;
+}
+.segmented-item {
+  flex: 1;
+  padding: 6px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-align: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all var(--t-fast);
+}
+.segmented-item:hover { color: var(--text-secondary); }
+.segmented-item.active {
+  background: var(--seg-accent);
+  color: #fff;
+  box-shadow: 0 1px 3px var(--seg-glow);
 }
 
-@keyframes modalIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.modal-header {
+/* ----- Dropdown ----- */
+.dropdown { position: relative; }
+.dropdown-trigger {
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-5) var(--space-6);
-  border-bottom: 1px solid var(--border-subtle);
+  transition: border-color var(--t-fast);
 }
-.modal-title { font-size: var(--text-lg); font-weight: var(--weight-semibold); }
-.modal-close {
-  width: 32px; height: 32px;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+.dropdown-trigger:hover { border-color: var(--border-strong); }
+.dropdown.open .dropdown-trigger { border-color: var(--seg-accent); }
+.dropdown-trigger .arrow { width: 12px; height: 12px; transition: transform var(--t-fast); color: var(--text-tertiary); }
+.dropdown.open .dropdown-trigger .arrow { transform: rotate(180deg); }
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0; right: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  padding: 4px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  display: none;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.dropdown.open .dropdown-menu { display: block; }
+
+.dropdown-option {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: all var(--duration-fast);
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--t-fast);
 }
-.modal-close:hover { color: var(--text-primary); background: var(--surface-hover); }
+.dropdown-option:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.dropdown-option.selected { color: var(--seg-accent); font-weight: 600; }
+.dropdown-option .color-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dropdown-option .opt-sub { margin-left: auto; font-size: 10px; color: var(--text-tertiary); }
 
-.modal-body { padding: var(--space-6); }
+/* ----- Pagination ----- */
+.pagination { display: flex; align-items: center; gap: 2px; }
+.page-btn {
+  width: 30px; height: 30px;
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.page-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+.page-indicator {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  padding: 0 8px;
+}
 
+/* ----- Countdown ----- */
+.countdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-left: auto;
+  padding: 0 8px;
+}
+.countdown .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: pulse 2s ease-in-out infinite;
+}
+.countdown.paused .dot { background: var(--text-disabled); animation: none; }
+.countdown .time { font-family: var(--font-mono); color: var(--text-secondary); }
+
+/* ----- Status Bar (28px) ----- */
+.statusbar {
+  height: var(--statusbar-h);
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+  padding: 0 16px;
+  gap: 16px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.status-text { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-tertiary); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.status-dot.loading { background: var(--warning); animation: pulse 1s ease-in-out infinite; }
+.status-dot.error { background: var(--error); }
+.status-sep { width: 1px; height: 14px; background: var(--border-default); }
+.status-mid { display: flex; align-items: center; gap: 16px; font-size: 11px; color: var(--text-tertiary); }
+.status-right { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-tertiary); }
+.status-right .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 2s ease-in-out infinite; }
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,8,16,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; animation: fadeIn var(--t-normal); }
+
+.modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-xl);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  width: 440px;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: slideUp var(--t-normal);
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.modal-close {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none;
+  color: var(--text-tertiary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.modal-close:hover { background: var(--bg-card); color: var(--text-primary); }
+
+.modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
 .modal-footer {
-  padding: var(--space-4) var(--space-6);
+  padding: 12px 20px 18px;
   border-top: 1px solid var(--border-subtle);
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-3);
+  gap: 8px;
 }
 
-/* Form elements in modal */
-.form-group { margin-bottom: var(--space-5); }
-.form-group:last-child { margin-bottom: 0; }
-
-.form-label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-2);
-}
-
+/* Form */
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.form-hint { font-size: 11px; color: var(--text-tertiary); }
 .form-input {
   width: 100%;
-  padding: var(--space-2) var(--space-3);
-  background: var(--void-700);
-  color: var(--text-primary);
+  padding: 8px 10px;
+  background: var(--bg-input);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-family: var(--font-sans);
-  transition: border-color var(--duration-fast);
+  border-radius: var(--r-md);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
   outline: none;
+  transition: border-color var(--t-fast);
 }
-.form-input:focus { border-color: var(--info); }
+.form-input:focus { border-color: var(--apod-primary); }
+select.form-input { font-family: var(--font-sans); }
 
-.form-hint {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  margin-top: var(--space-1);
+/* Style pills */
+.style-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.style-pill {
+  padding: 6px 12px;
+  border-radius: var(--r-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+.style-pill:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.style-pill.selected {
+  background: var(--apod-glow);
+  border-color: var(--apod-primary);
+  color: var(--apod-light);
 }
 
-/* Toggle switch */
+/* Toggle row */
 .toggle-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) 0;
+  padding: 4px 0;
   cursor: pointer;
 }
-.toggle-label { font-size: var(--text-sm); color: var(--text-primary); }
-.toggle-hint { font-size: var(--text-xs); color: var(--text-muted); margin-top: 2px; }
+.toggle-label { font-size: 13px; color: var(--text-primary); }
+.toggle-hint { font-size: 11px; color: var(--text-tertiary); }
 
+/* Toggle switch */
 .toggle-switch {
-  width: 44px;
-  height: 24px;
-  background: var(--void-700);
-  border-radius: 12px;
+  width: 36px; height: 20px;
+  border-radius: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
   position: relative;
-  transition: background var(--duration-normal);
+  cursor: pointer;
+  transition: all var(--t-fast);
   flex-shrink: 0;
 }
-.toggle-switch.on { background: var(--success); }
 .toggle-switch::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  background: white;
+  top: 2px; left: 2px;
+  width: 14px; height: 14px;
   border-radius: 50%;
-  transition: transform var(--duration-normal) var(--ease-out-quart);
+  background: #fff;
+  transition: transform var(--t-fast);
 }
-.toggle-switch.on::after { transform: translateX(20px); }
+.toggle-switch.on { background: var(--success); border-color: transparent; }
+.toggle-switch.on::after { transform: translateX(16px); }
 
-/* Wallpaper style pills */
-.style-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.style-pill {
-  padding: var(--space-1) var(--space-3);
-  border-radius: 20px;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  background: var(--void-700);
-  border: 1px solid var(--border-default);
-  cursor: pointer;
-  transition: all var(--duration-fast);
-  font-family: var(--font-sans);
-}
-.style-pill:hover { color: var(--text-primary); border-color: var(--border-strong); }
-.style-pill.selected {
-  color: var(--info);
-  background: var(--info-dim);
-  border-color: var(--info);
-}
-
-/* Help text area */
-.help-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  line-height: var(--leading-relaxed);
-  background: var(--void-800);
-  border-radius: var(--radius-md);
-  padding: var(--space-5);
-  max-height: 360px;
-  overflow-y: auto;
-}
-.help-text h3 {
-  color: var(--text-primary);
-  font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
-  margin: var(--space-4) 0 var(--space-2);
-}
+/* Help text */
+.help-text h3 { font-size: 13px; font-weight: 700; color: var(--text-primary); margin: 14px 0 6px; }
 .help-text h3:first-child { margin-top: 0; }
-.help-text p { margin-bottom: var(--space-2); }
-.help-text ul { padding-left: var(--space-5); margin-bottom: var(--space-3); }
-.help-text li { margin-bottom: var(--space-1); color: var(--text-secondary); }
+.help-text p, .help-text li { font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+.help-text ul { padding-left: 18px; }
 .help-text code {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  background: var(--void-700);
+  background: var(--bg-card);
   padding: 1px 5px;
   border-radius: 3px;
-  color: var(--accent-apod);
+  font-size: 11px;
 }
 
-/* Loading shimmer */
-@keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-
-.loading-shimmer {
-  background: linear-gradient(90deg,
-    var(--void-700) 0%,
-    var(--void-600) 40%,
-    var(--void-700) 80%
-  );
-  background-size: 800px 100%;
-  animation: shimmer 2s ease-in-out infinite;
-}
-
-/* ============================================================
-   SDO BAND COLORS
-   ============================================================ */
-.band-swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
+/* Exit dialog */
+.exit-dialog-body { padding: 24px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.exit-dialog-icon {
+  width: 48px; height: 48px;
   border-radius: 50%;
-  margin-right: var(--space-2);
-  flex-shrink: 0;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
 }
-.band-0304 { background: #e03040; }
-.band-0171 { background: #d4a030; }
-.band-continuum { background: #f0e0c0; }
-.band-magnetogram { background: #60a0e0; }
-.band-0211 { background: #e07080; }
-.band-0193 { background: #c06030; }
-.band-0094 { background: #40c080; }
-.band-0131 { background: #40a0d0; }
+.exit-dialog-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.exit-dialog-desc { font-size: 12px; color: var(--text-tertiary); }
+.exit-dialog-actions { padding: 0 20px 24px; display: flex; flex-direction: column; gap: 8px; }
+.exit-dialog-actions .btn { width: 100%; height: 38px; }
+.btn-tray {
+  background: var(--bg-card);
+  border: 1px solid rgba(0,180,216,0.3);
+  color: var(--sat-light);
+}
+.btn-tray:hover { background: var(--bg-card-hover); }
 
-/* ============================================================
-   RESPONSIVE
-   ============================================================ */
-@media (max-width: 860px) {
-  .sidebar { display: none; }
-  .header-subtitle { display: none; }
-  .source-tab span:last-child { display: none; }
-  .preview-area { margin: var(--space-2); border-radius: var(--radius-md); }
-  .control-bar { padding: 0 var(--space-3); gap: var(--space-2); flex-wrap: wrap; height: auto; padding-block: var(--space-2); }
+/* Log content */
+.log-pre {
+  margin: 0; padding: 16px;
+  background: var(--bg-app);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  max-height: 55vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 </style>
 </head>
 <body>
+<div class="window">
 
-<div class="app">
-  <!-- ===== HEADER ===== -->
-  <header class="header pywebview-drag-region">
-    <div class="header-brand">
-      <img class="header-logo" src="/logo.png" alt="logo">
-      <div>
-        <div class="header-title">RealEarth <span class="version-tag">v3.0.7</span></div>
-        <div class="header-subtitle">真实地球</div>
-      </div>
+  <!-- ===== TITLE BAR ===== -->
+  <header class="titlebar" id="titlebar">
+    <div class="titlebar-brand">
+      <div class="brand-icon"></div>
+      <span class="brand-name">RealEarth</span>
     </div>
-
-    <div class="source-tabs" id="sourceTabs">
-      <button class="source-tab apod-tab active" data-source="apod">
-        <span class="tab-dot apod-dot"></span>
-        <span>天文图片</span>
-      </button>
-      <button class="source-tab sat-tab" data-source="satellite">
-        <span class="tab-dot sat-dot"></span>
-        <span>卫星影像</span>
-      </button>
-      <button class="source-tab sdo-tab" data-source="sdo">
-        <span class="tab-dot sdo-dot"></span>
-        <span>太阳观测</span>
-      </button>
-    </div>
-
-    <div class="header-actions">
-      <button class="btn btn-ghost btn-icon small" id="btnHelp" title="使用说明">?</button>
-      <button class="btn btn-ghost btn-icon small" id="btnSettings" title="设置">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M8 0.5v2M8 13.5v2M0.5 8h2M13.5 8h2M2.7 2.7l1.4 1.4M11.9 11.9l1.4 1.4M2.7 13.3l1.4-1.4M11.9 4.1l1.4-1.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <div class="window-controls" id="windowControls">
+    <div class="titlebar-actions">
+      <div class="window-controls" id="windowControls" style="display:none;">
         <button class="win-btn" id="winMinimize" title="最小化">
           <svg width="10" height="10" viewBox="0 0 10 10"><rect x="0" y="8" width="10" height="2" fill="currentColor"/></svg>
         </button>
@@ -1111,196 +1008,335 @@ body:not(.pywebview) .window-controls {
     </div>
   </header>
 
-  <!-- ===== BODY ===== -->
-  <div class="body">
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <!-- APOD categories -->
-      <div class="sidebar-section" id="apodSidebar">
-        <div class="sidebar-label">图片分类</div>
-        <div class="cat-list" id="catList"></div>
-      </div>
-
-      <!-- Satellite controls -->
-      <div class="sidebar-section" id="satSidebar" style="display:none;">
-        <div class="sidebar-label">卫星影像</div>
-        <div class="sat-select-group">
-          <div class="sat-select-label">卫星</div>
-          <select class="select-styled" id="satSelect">
-            <option value="himawari">Himawari-8 亚太</option>
-            <option value="goes16">GOES-16 美洲</option>
-            <option value="goes18">GOES-18 美洲西</option>
-            <option value="gk2a">GK2A 韩国</option>
-            <option value="meteosat">Meteosat 欧洲/非洲</option>
-            <option value="meteosat-9">Meteosat-9 印度洋</option>
-          </select>
-        </div>
-        <div class="sat-select-group">
-          <div class="sat-select-label">色彩模式</div>
-          <div class="radio-group" id="satColorGroup">
-            <div class="radio-item selected" data-value="natural_color"><span class="radio-dot"></span>自然色</div>
-            <div class="radio-item" data-value="geocolor"><span class="radio-dot"></span>地球色（含夜景）</div>
-          </div>
-        </div>
-        <div class="sat-select-group">
-          <div class="sat-select-label">分辨率</div>
-          <div class="radio-group" id="satSizeGroup">
-            <div class="radio-item" data-value="688"><span class="radio-dot"></span>标准 688px</div>
-            <div class="radio-item selected" data-value="1080"><span class="radio-dot"></span>高清 1080px</div>
-            <div class="radio-item" data-value="2200"><span class="radio-dot"></span>超清 2200px</div>
-          </div>
-        </div>
-        <div class="sidebar-info">
-          <div class="sidebar-info-title">数据来源</div>
-          <div class="sidebar-info-text">CIRA RAMMB-Slider<br>更新频率约 10 分钟<br>实时地球静止卫星影像</div>
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="earth-ball"></div>
+        <div class="brand-text">
+          <div class="brand-title">RealEarth</div>
+          <div class="brand-sub">真实地球壁纸</div>
         </div>
       </div>
 
-      <!-- SDO controls -->
-      <div class="sidebar-section" id="sdoSidebar" style="display:none;">
-        <div class="sidebar-label">观测波段</div>
-        <div class="radio-group" id="sdoBandGroup"></div>
-        <div class="sidebar-info">
-          <div class="sidebar-info-title">数据来源</div>
-          <div class="sidebar-info-text">NASA 太阳动力学天文台<br>拍摄频率约 15-60 分钟<br>SDO — Solar Dynamics Observatory</div>
+      <div class="sidebar-section-label">数据源</div>
+      <nav class="nav-list" id="navList">
+        <div class="nav-item active" data-source="apod" style="--nav-accent:var(--apod-primary); --nav-glow:var(--apod-glow); --nav-accent-bg:rgba(124,92,252,0.15);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="10" stroke-dasharray="3 3" opacity="0.4"/></svg>
+          <span>天文图片</span>
+          <span class="nav-badge">APOD</span>
         </div>
+        <div class="nav-item" data-source="satellite" style="--nav-accent:var(--sat-primary); --nav-glow:var(--sat-glow); --nav-accent-bg:rgba(0,180,216,0.15);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M4 12h16M7 6a9 9 0 000 12"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>
+          <span>卫星影像</span>
+          <span class="nav-badge">6 颗</span>
+        </div>
+        <div class="nav-item" data-source="fy4" style="--nav-accent:var(--fy4-primary); --nav-glow:var(--fy4-glow); --nav-accent-bg:rgba(232,69,60,0.15);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18"/></svg>
+          <span>风云四号</span>
+          <span class="nav-badge">FY-4B</span>
+        </div>
+        <div class="nav-item" data-source="sdo" style="--nav-accent:var(--sdo-primary); --nav-glow:var(--sdo-glow); --nav-accent-bg:rgba(255,140,0,0.15);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/><path d="M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" opacity="0.5"/></svg>
+          <span>太阳观测</span>
+          <span class="nav-badge">11 波段</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <button class="sidebar-bottom-btn" id="btnSettings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M19.8 4.2L17 7M7 17l-2.8 2.8"/></svg>
+          <span>设置</span>
+        </button>
+        <button class="sidebar-bottom-btn" id="btnHelp">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9 9a3 3 0 015.2 2c0 1.5-2 2-2 3M12 17h.01"/></svg>
+          <span>使用说明</span>
+        </button>
+        <div class="sidebar-version" id="sidebarVersion">RealEarth v1.0.0</div>
       </div>
     </aside>
 
-    <!-- Main content -->
-    <main class="main">
-      <!-- APOD Panel -->
-      <div class="panel visible" id="panelApod">
-        <div class="preview-area">
-          <div class="preview-placeholder apod-bg">
-            <div class="nebula-cloud"></div>
-            <div class="nebula-cloud"></div>
-            <div class="nebula-cloud"></div>
-          </div>
-          <div class="empty-state" id="apodEmpty">
-            <div class="empty-icon apod-ei">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-apod)" stroke-width="1.5">
-                <circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
-                <circle cx="12" cy="12" r="10" stroke-dasharray="3 3" opacity="0.4"/>
-              </svg>
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ===== APOD PANEL ===== -->
+      <div class="panel active" id="panelApod" style="--seg-accent:var(--apod-primary); --seg-glow:var(--apod-glow);">
+        <div class="control-panel">
+          <div class="panel-header">
+            <div class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+            <div class="panel-header-text">
+              <div class="panel-title">天文图片</div>
+              <div class="panel-subtitle">NASA APOD 每日精选</div>
             </div>
-            <div class="empty-title">探索宇宙的壮丽图景</div>
-            <div class="empty-desc">点击下方「获取历史」拉取 NASA 天文每日图片，或等待自动更新</div>
           </div>
-          <div class="preview-overlay" id="apodOverlay" style="display:none;">
-            <div class="preview-meta">
-              <div class="preview-title" id="apodTitle">猎户座大星云</div>
-              <div class="preview-date" id="apodDate">2026-08-12</div>
-              <div class="preview-copyright" id="apodCopyright"></div>
-            </div>
-            <div class="preview-resolution" id="apodRes"></div>
+          <div class="control-group">
+            <div class="control-label">图片分类</div>
+            <div class="cat-list" id="catList"></div>
+          </div>
+          <div class="control-group">
+            <button class="btn btn-accent" id="btnFetch" style="width:100%;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-9-9M21 3v6h-6"/></svg>
+              获取历史图片
+            </button>
           </div>
         </div>
-        <div class="control-bar">
-          <div class="control-group">
-            <div class="nav-group">
-              <button class="btn btn-ghost btn-icon small" id="btnPrev" title="上一张">
-                <svg width="16" height="16" viewBox="0 0 16 16"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <span class="page-indicator" id="pageInd">0 / 0</span>
-              <button class="btn btn-ghost btn-icon small" id="btnNext" title="下一张">
-                <svg width="16" height="16" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
+
+        <div class="preview-column">
+          <div class="preview-area">
+            <div class="preview-container">
+              <div class="preview-placeholder apod-bg"></div>
+              <div class="empty-state" id="apodEmpty">
+                <div class="empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--seg-accent)" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></div>
+                <div class="empty-title">探索宇宙的壮丽图景</div>
+                <div class="empty-desc">点击「获取历史图片」拉取 NASA 天文每日图片，或等待自动更新</div>
+              </div>
+              <div class="preview-loading" id="apodLoading"><div class="spinner"></div><div class="loading-text">加载中...</div></div>
+              <div class="preview-overlay" id="apodOverlay" style="display:none;">
+                <div>
+                  <div class="preview-title" id="apodTitle">猎户座大星云</div>
+                  <div class="preview-meta" id="apodMeta"></div>
+                </div>
+                <div class="preview-resolution" id="apodRes"></div>
+              </div>
             </div>
-            <button class="btn btn-accent" id="btnFetch">获取历史</button>
           </div>
-          <div class="control-group right">
-            <button class="btn btn-ghost" id="btnUpdate">更新</button>
+          <div class="action-bar">
+            <div class="pagination">
+              <button class="page-btn" id="btnPrev" title="上一张"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <span class="page-indicator" id="pageInd">0 / 0</span>
+              <button class="page-btn" id="btnNext" title="下一张"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+            <button class="btn btn-success" id="btnUpdate">更新</button>
+            <div class="spacer"></div>
             <button class="btn btn-primary" id="btnSetApod">设为壁纸</button>
           </div>
         </div>
       </div>
 
-      <!-- Satellite Panel -->
-      <div class="panel" id="panelSat">
-        <div class="preview-area">
-          <div class="preview-placeholder sat-bg"></div>
-          <div class="empty-state" id="satEmpty">
-            <div class="empty-icon sat-ei">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-sat)" stroke-width="1.5">
-                <circle cx="12" cy="12" r="9"/><path d="M4 12h16M7 6a9 9 0 000 12"/><ellipse cx="12" cy="12" rx="4" ry="9"/>
-              </svg>
+      <!-- ===== SATELLITE PANEL ===== -->
+      <div class="panel" id="panelSat" style="--seg-accent:var(--sat-primary); --seg-glow:var(--sat-glow);">
+        <div class="control-panel">
+          <div class="panel-header">
+            <div class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M4 12h16M7 6a9 9 0 000 12"/></svg></div>
+            <div class="panel-header-text">
+              <div class="panel-title">卫星影像</div>
+              <div class="panel-subtitle">地球静止卫星实时图</div>
             </div>
-            <div class="empty-title">获取地球实时影像</div>
-            <div class="empty-desc">选择卫星和色彩模式，点击「获取最新影像」查看地球此刻的样子</div>
           </div>
-          <div class="preview-overlay" id="satOverlay" style="display:none;">
-            <div class="preview-meta">
-              <div class="preview-title" id="satTitle">Himawari-8 亚太</div>
-              <div class="preview-date" id="satTime">2026-08-12 10:00 UTC+8</div>
+
+          <div class="control-group">
+            <div class="control-label">卫星</div>
+            <div class="dropdown" id="satDropdown">
+              <button class="dropdown-trigger" id="satTrigger">
+                <span id="satTriggerText">向日葵 8 号 (Himawari-8)</span>
+                <svg class="arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5l3 3 3-3"/></svg>
+              </button>
+              <div class="dropdown-menu" id="satMenu"></div>
             </div>
-            <div class="preview-resolution" id="satRes"></div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">颜色模式</div>
+            <div class="segmented" id="satColorSeg">
+              <div class="segmented-item active" data-value="natural_color">自然色</div>
+              <div class="segmented-item" data-value="geocolor">地球色</div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">分辨率</div>
+            <div class="segmented" id="satSizeSeg">
+              <div class="segmented-item" data-value="688">标准</div>
+              <div class="segmented-item active" data-value="1080">高清</div>
+              <div class="segmented-item" data-value="2200">超清</div>
+            </div>
+          </div>
+
+          <div class="info-card" id="satInfoCard">
+            <div class="info-card-row"><span>机构</span><span class="v" id="satAgency">JMA 日本</span></div>
+            <div class="info-card-row"><span>覆盖区域</span><span class="v" id="satRegion">亚太地区</span></div>
+            <div class="info-card-row"><span>更新频率</span><span class="v" id="satFreq">每 10 分钟</span></div>
           </div>
         </div>
-        <div class="control-bar">
-          <div class="control-group">
-            <button class="btn btn-sat" id="btnSatFetch">获取最新影像</button>
-            <div class="auto-toggle on" id="satAutoToggle">
-              <span class="auto-dot"></span>自动刷新
+
+        <div class="preview-column">
+          <div class="preview-area">
+            <div class="preview-container">
+              <div class="preview-placeholder sat-bg"></div>
+              <div class="empty-state" id="satEmpty">
+                <div class="empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--seg-accent)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M4 12h16M7 6a9 9 0 000 12"/></svg></div>
+                <div class="empty-title">获取地球实时影像</div>
+                <div class="empty-desc">选择卫星和颜色模式，点击「获取最新影像」查看地球此刻的样子</div>
+              </div>
+              <div class="preview-loading" id="satLoading"><div class="spinner"></div><div class="loading-text">加载中...</div></div>
+              <div class="preview-overlay" id="satOverlay" style="display:none;">
+                <div>
+                  <div class="preview-title" id="satTitle">Himawari-8 亚太</div>
+                  <div class="preview-meta" id="satTime"></div>
+                </div>
+                <div class="preview-resolution" id="satRes"></div>
+              </div>
             </div>
-            <span class="countdown" id="satCountdown">09:58</span>
           </div>
-          <div class="control-group right">
+          <div class="action-bar">
+            <button class="btn btn-accent" id="btnSatFetch">获取最新影像</button>
+            <button class="btn btn-toggle on" id="satAutoToggle"><span class="dot"></span>自动刷新: 开</button>
+            <div class="countdown" id="satCountdownWrap"><span class="dot"></span><span class="time" id="satCountdown">09:58</span></div>
+            <div class="spacer"></div>
             <button class="btn btn-primary" id="btnSetSat">设为壁纸</button>
           </div>
         </div>
       </div>
 
-      <!-- SDO Panel -->
-      <div class="panel" id="panelSdo">
-        <div class="preview-area">
-          <div class="preview-placeholder sdo-bg"></div>
-          <div class="empty-state" id="sdoEmpty">
-            <div class="empty-icon sdo-ei">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-sdo)" stroke-width="1.5">
-                <circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/>
-                <path d="M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" opacity="0.5"/>
-              </svg>
+      <!-- ===== FY-4B PANEL ===== -->
+      <div class="panel" id="panelFy4" style="--seg-accent:var(--fy4-primary); --seg-glow:var(--fy4-glow);">
+        <div class="control-panel">
+          <div class="panel-header">
+            <div class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18M12 3c-3 3.5-3 14 0 18"/></svg></div>
+            <div class="panel-header-text">
+              <div class="panel-title">风云四号</div>
+              <div class="panel-subtitle">FY-4B 真彩色全圆盘</div>
             </div>
-            <div class="empty-title">观测太阳活动</div>
-            <div class="empty-desc">选择观测波段，获取来自 NASA SDO 的最新太阳图像</div>
           </div>
-          <div class="preview-overlay" id="sdoOverlay" style="display:none;">
-            <div class="preview-meta">
-              <div class="preview-title" id="sdoTitle">304 Å — 色球层</div>
-              <div class="preview-date" id="sdoTime">NASA SDO · 2026-08-12 10:00</div>
+
+          <div class="control-group">
+            <div class="control-label">卫星</div>
+            <div class="dropdown" id="fy4Dropdown">
+              <button class="dropdown-trigger" id="fy4Trigger">
+                <span id="fy4TriggerText">FY-4B (风云四号B星)</span>
+                <svg class="arrow" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5l3 3 3-3"/></svg>
+              </button>
+              <div class="dropdown-menu" id="fy4Menu"></div>
             </div>
-            <div class="preview-resolution" id="sdoRes"></div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">分辨率</div>
+            <div class="segmented" id="fy4SizeSeg">
+              <div class="segmented-item" data-value="standard">标准</div>
+              <div class="segmented-item active" data-value="hd">高清</div>
+              <div class="segmented-item" data-value="uhd">超清</div>
+            </div>
+          </div>
+
+          <div class="info-card fy4-notice">风云四号固定为真彩色，色彩模式不适用</div>
+
+          <div class="info-card">
+            <div class="info-card-row"><span>卫星</span><span class="v">FY-4B</span></div>
+            <div class="info-card-row"><span>国家</span><span class="v">中国</span></div>
+            <div class="info-card-row"><span>机构</span><span class="v">NSMC</span></div>
+            <div class="info-card-row"><span>影像类型</span><span class="v">真彩色全圆盘</span></div>
+            <div class="info-card-row"><span>更新频率</span><span class="v">每 15 分钟</span></div>
+            <div class="info-card-row"><span>时区</span><span class="v">UTC+8 北京时间</span></div>
           </div>
         </div>
-        <div class="control-bar">
-          <div class="control-group">
-            <button class="btn btn-sdo" id="btnSdoFetch">获取最新太阳图</button>
-            <div class="auto-toggle on" id="sdoAutoToggle">
-              <span class="auto-dot"></span>自动刷新
+
+        <div class="preview-column">
+          <div class="preview-area">
+            <div class="preview-container">
+              <div class="preview-placeholder fy4-bg"></div>
+              <div class="empty-state" id="fy4Empty">
+                <div class="empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--seg-accent)" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14 0 18"/></svg></div>
+                <div class="empty-title">中国视角的地球全圆盘</div>
+                <div class="empty-desc">风云四号 B 星定点东经 104.7°，点击「获取最新影像」查看以中国为中心的地球</div>
+              </div>
+              <div class="preview-loading" id="fy4Loading"><div class="spinner"></div><div class="loading-text">加载中...</div></div>
+              <div class="preview-overlay" id="fy4Overlay" style="display:none;">
+                <div>
+                  <div class="preview-title" id="fy4Title">FY-4B 真彩色全圆盘</div>
+                  <div class="preview-meta" id="fy4Time"></div>
+                </div>
+                <div class="preview-resolution" id="fy4Res"></div>
+              </div>
             </div>
-            <span class="countdown" id="sdoCountdown">59:42</span>
           </div>
-          <div class="control-group right">
+          <div class="action-bar">
+            <button class="btn btn-accent" id="btnFy4Fetch">获取最新影像</button>
+            <button class="btn btn-toggle on" id="fy4AutoToggle"><span class="dot"></span>自动刷新: 开</button>
+            <div class="countdown" id="fy4CountdownWrap"><span class="dot"></span><span class="time" id="fy4Countdown">14:58</span></div>
+            <div class="spacer"></div>
+            <button class="btn btn-primary" id="btnSetFy4">设为壁纸</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SDO PANEL ===== -->
+      <div class="panel" id="panelSdo" style="--seg-accent:var(--sdo-primary); --seg-glow:var(--sdo-glow);">
+        <div class="control-panel">
+          <div class="panel-header">
+            <div class="panel-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></div>
+            <div class="panel-header-text">
+              <div class="panel-title">太阳观测</div>
+              <div class="panel-subtitle">NASA SDO 太阳动力学天文台</div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">观测波段</div>
+            <div class="band-list" id="sdoBandGroup"></div>
+          </div>
+
+          <div class="info-card">
+            <div class="info-card-row"><span>数据源</span><span class="v">NASA SDO</span></div>
+            <div class="info-card-row"><span>更新频率</span><span class="v">15-60 分钟</span></div>
+            <div class="info-card-row"><span>自动刷新</span><span class="v">每 60 分钟</span></div>
+          </div>
+        </div>
+
+        <div class="preview-column">
+          <div class="preview-area">
+            <div class="preview-container">
+              <div class="preview-placeholder sdo-bg"></div>
+              <div class="empty-state" id="sdoEmpty">
+                <div class="empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--seg-accent)" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M1 12h3M20 12h3"/></svg></div>
+                <div class="empty-title">观测太阳活动</div>
+                <div class="empty-desc">选择观测波段，获取来自 NASA SDO 的最新太阳图像</div>
+              </div>
+              <div class="preview-loading" id="sdoLoading"><div class="spinner"></div><div class="loading-text">加载中...</div></div>
+              <div class="preview-overlay" id="sdoOverlay" style="display:none;">
+                <div>
+                  <div class="preview-title" id="sdoTitle">304 Å — 色球层</div>
+                  <div class="preview-meta" id="sdoTime"></div>
+                </div>
+                <div class="preview-resolution" id="sdoRes"></div>
+              </div>
+            </div>
+          </div>
+          <div class="action-bar">
+            <button class="btn btn-accent" id="btnSdoFetch">获取最新太阳图</button>
+            <button class="btn btn-toggle on" id="sdoAutoToggle"><span class="dot"></span>自动刷新: 开</button>
+            <div class="countdown" id="sdoCountdownWrap"><span class="dot"></span><span class="time" id="sdoCountdown">59:42</span></div>
+            <div class="spacer"></div>
             <button class="btn btn-primary" id="btnSetSdo">设为壁纸</button>
           </div>
         </div>
       </div>
-    </main>
+
+    </div>
   </div>
 
-  <!-- Status Bar -->
-  <div class="status-bar">
+  <!-- ===== STATUS BAR ===== -->
+  <footer class="statusbar">
     <div class="status-text">
       <span class="status-dot ok" id="statusDot"></span>
       <span id="statusText">就绪</span>
     </div>
-    <div class="status-update" id="statusUpdate"></div>
-  </div>
+    <span class="status-sep"></span>
+    <div class="status-mid">
+      <span id="statusCache">缓存: 0 张</span>
+      <span id="statusDisk">磁盘占用: 0 MB</span>
+    </div>
+    <div class="status-right">
+      <span class="dot"></span>
+      <span>调度器运行中</span>
+    </div>
+  </footer>
 </div>
 
 <!-- ===== SETTINGS MODAL ===== -->
-<div class="modal-overlay" id="settingsModal" style="display:none;">
+<div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">设置</div>
@@ -1310,7 +1346,7 @@ body:not(.pywebview) .window-controls {
       <div class="form-group">
         <label class="form-label">NASA API Key</label>
         <input class="form-input" id="apiKeyInput" value="DEMO_KEY" placeholder="输入 NASA API Key">
-        <div class="form-hint">默认使用 DEMO_KEY（每小时限流 30 次）。建议访问 api.nasa.gov 申请免费 Key。</div>
+        <div class="form-hint">默认 DEMO_KEY（每小时限 30 次）。建议访问 api.nasa.gov 申请免费 Key。</div>
       </div>
 
       <div class="form-group">
@@ -1378,7 +1414,7 @@ body:not(.pywebview) .window-controls {
             <button class="btn btn-ghost" id="btnTestSdo" style="width:100%;">测试连通性</button>
           </div>
         </div>
-        <div id="sdoTestResult" style="font-size:12px; color:var(--text-muted); line-height:1.5;"></div>
+        <div id="sdoTestResult" style="font-size:12px; color:var(--text-tertiary); line-height:1.5;"></div>
       </div>
 
       <div class="toggle-row" id="toggleAutoUpdate">
@@ -1410,52 +1446,46 @@ body:not(.pywebview) .window-controls {
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" id="cancelSettings">取消</button>
+      <button class="btn btn-secondary" id="cancelSettings">取消</button>
       <button class="btn btn-primary" id="saveSettings">保存</button>
     </div>
   </div>
 </div>
 
 <!-- ===== HELP MODAL ===== -->
-<div class="modal-overlay" id="helpModal" style="display:none;">
-  <div class="modal">
+<div class="modal-overlay" id="helpModal">
+  <div class="modal" style="width:540px;">
     <div class="modal-header">
       <div class="modal-title">使用说明</div>
       <button class="modal-close" id="closeHelp">&times;</button>
     </div>
     <div class="modal-body">
       <div class="help-text">
-        <h3>RealEarth — 真实地球</h3>
-        <p>三大数据源模式，点击顶部标签切换：</p>
-
-        <h3>天文图片 — NASA APOD</h3>
+        <h3 style="color:var(--apod-light);">天文图片 — NASA APOD</h3>
         <ul>
           <li>首次启动自动获取近 10 天图片</li>
-          <li>左侧选择分类浏览：星云、星系、行星等 10 个类别</li>
+          <li>左侧选择分类浏览：星云、星系、行星等</li>
           <li>导航按钮浏览图片，点击「设为壁纸」应用到桌面</li>
-          <li>每天在设定时间自动更新</li>
         </ul>
-
-        <h3>卫星影像 — 多卫星实时影像</h3>
+        <h3 style="color:var(--sat-light);">卫星影像 — 多卫星实时影像</h3>
         <ul>
-          <li>支持 6 颗地球静止卫星</li>
-          <li>GOES-16/18（美洲）、Himawari-8（亚太）</li>
-          <li>GK2A（韩国）、Meteosat（欧洲/非洲/印度洋）</li>
-          <li>色彩模式：自然色 / 地球色（含夜景）</li>
+          <li>支持多颗地球静止卫星：Himawari-8、GOES-16/18、GK2A、Meteosat</li>
+          <li>颜色模式：自然色 / 地球色（含夜景）</li>
           <li>开启自动刷新，每 10 分钟自动更新</li>
         </ul>
-
-        <h3>太阳观测 — NASA SDO</h3>
+        <h3 style="color:var(--fy4-light);">风云四号 — FY-4B 真彩色</h3>
         <ul>
-          <li>多个观测波段可选</li>
-          <li>304 Å（色球层）、171 Å（日冕）</li>
-          <li>连续光球（太阳黑子）、带磁场线叠加</li>
+          <li>国产风云四号 B 星，定点东经 104.7°（中国视角最佳）</li>
+          <li>真彩色全圆盘图，数据来源：国家卫星气象中心 NSMC</li>
+          <li>覆盖中国全境，每 15 分钟更新</li>
+        </ul>
+        <h3 style="color:var(--sdo-light);">太阳观测 — NASA SDO</h3>
+        <ul>
+          <li>11 个观测波段：304Å（色球层）、171Å（日冕）等</li>
           <li>数据来源：NASA 太阳动力学天文台</li>
         </ul>
-
         <h3>NASA API Key</h3>
         <p>默认使用 <code>DEMO_KEY</code>（每小时限流 30 次）。建议访问 api.nasa.gov 申请免费 Key。</p>
-
         <h3>数据存储</h3>
         <p>配置和缓存在 <code>%USERPROFILE%\.nasa_wallpaper\</code> 目录</p>
       </div>
@@ -1466,94 +1496,76 @@ body:not(.pywebview) .window-controls {
   </div>
 </div>
 
-<!-- Exit confirm modal -->
-<div class="modal-overlay" id="exitModal" style="display:none;">
-  <div class="modal" style="max-width: 400px;">
+<!-- ===== EXIT CONFIRM MODAL ===== -->
+<div class="modal-overlay" id="exitModal">
+  <div class="modal" style="width:380px;">
     <div class="modal-header">
       <div class="modal-title">退出</div>
       <button class="modal-close" id="closeExitModal">&times;</button>
     </div>
-    <div class="modal-body">
-      <p style="margin:0 0 var(--space-4); color: var(--text-secondary);">选择退出方式：</p>
-      <div style="display:flex; flex-direction:column; gap: var(--space-3);">
-        <button class="btn btn-accent" id="exitToTray" style="width:100%;">
-          最小化到后台（托盘运行）
-        </button>
-        <button class="btn btn-danger" id="exitQuit" style="width:100%;">
-          关闭软件
-        </button>
+    <div class="exit-dialog-body">
+      <div class="exit-dialog-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
       </div>
+      <div class="exit-dialog-title">选择退出方式</div>
+      <div class="exit-dialog-desc">最小化到后台可继续自动更新壁纸</div>
     </div>
-    <div class="modal-footer">
+    <div class="exit-dialog-actions">
+      <button class="btn btn-tray" id="exitToTray">最小化到任务栏</button>
+      <button class="btn btn-primary" id="exitQuit">退出程序</button>
       <button class="btn btn-ghost" id="closeExitBtn">取消</button>
     </div>
   </div>
 </div>
 
 <!-- ===== LOG VIEWER MODAL ===== -->
-<div class="modal-overlay" id="logModal" style="display:none;">
-  <div class="modal" style="max-width: 780px; max-height: 85vh;">
+<div class="modal-overlay" id="logModal">
+  <div class="modal" style="width:780px;">
     <div class="modal-header">
       <div class="modal-title">运行日志</div>
       <div style="display:flex; gap:8px; align-items:center;">
         <select class="form-input" id="logFileSelect" style="width:160px; padding:2px 8px; font-size:12px;">
           <option value="app.log">当前日志</option>
         </select>
-        <button class="btn btn-ghost small" id="btnRefreshLogs">刷新</button>
+        <button class="btn btn-ghost" id="btnRefreshLogs">刷新</button>
         <button class="modal-close" id="closeLogModal">&times;</button>
       </div>
     </div>
     <div class="modal-body" style="padding: 0;">
-      <pre id="logContent" style="
-        margin:0; padding: var(--space-4);
-        background: var(--void-900);
-        color: var(--text-secondary);
-        font-family: 'Sarasa Mono SC', 'Cascadia Code', 'Fira Code', monospace;
-        font-size: 11px;
-        line-height: 1.6;
-        max-height: 55vh;
-        overflow: auto;
-        white-space: pre-wrap;
-        word-break: break-all;
-        border-radius: 0 0 var(--radius-md) var(--radius-md);
-      ">加载中...</pre>
+      <pre class="log-pre" id="logContent">加载中...</pre>
     </div>
     <div class="modal-footer">
-      <span style="font-size:11px; color: var(--text-muted);" id="logInfo"></span>
-      <button class="btn btn-ghost" id="closeLogBtn">关闭</button>
+      <span style="font-size:11px; color:var(--text-tertiary);" id="logInfo"></span>
+      <button class="btn btn-secondary" id="closeLogBtn">关闭</button>
     </div>
   </div>
 </div>
 
-
 <script>
 /* ============================================================
-   LIVE EARTH WALLPAPER — UI Controller (API-Connected)
+   REALEARTH — UI Controller
    ============================================================ */
-
-// ----- API Base URL -----
 const API = window.location.origin;
 
-// ----- State -----
 const state = {
   source: 'apod',
   currentCat: 'all',
   currentIdx: 0,
   categories: [],
-  apodImages: [],         // 当前分类下的图片列表
-  apodAllImages: [],       // 全部图片
+  apodImages: [],
+  apodAllImages: [],
   lastSatPath: null,
+  lastFy4Path: null,
   lastSdoPath: null,
   satAutoRefresh: true,
+  fy4AutoRefresh: true,
   sdoAutoRefresh: true,
   config: null,
 };
 
-// ----- DOM References -----
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-// ----- API Helpers -----
 async function api(path, options = {}) {
   const res = await fetch(API + path, {
     headers: { 'Content-Type': 'application/json' },
@@ -1566,7 +1578,7 @@ async function api(path, options = {}) {
   return res.json();
 }
 
-// ----- Preview Image Renderer -----
+/* ----- Preview Image Renderer ----- */
 function setPreviewImage(placeholderSel, url) {
   const el = document.querySelector(placeholderSel);
   if (!el) return;
@@ -1583,13 +1595,22 @@ function setPreviewImage(placeholderSel, url) {
   }
 }
 
-// ----- Time & Watermark Helpers -----
+/* ----- Loading ----- */
+function showLoading(panelId) {
+  const loading = $(`#${panelId} .preview-loading`);
+  if (loading) loading.classList.add('show');
+}
+function hideLoading(panelId) {
+  const loading = $(`#${panelId} .preview-loading`);
+  if (loading) loading.classList.remove('show');
+}
+
+/* ----- Time & Watermark Helpers ----- */
 function formatLocalTime(d) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// 从 config 读取水印设置（带默认值）
 function getWmSettings() {
   const c = state.config || {};
   return {
@@ -1599,20 +1620,12 @@ function getWmSettings() {
     show_sys_time: c.wm_show_sys_time !== false,
   };
 }
-
-// 生成 watermark-and-set 请求体（合并水印设置）
 function wmPayload(base) {
   const wm = getWmSettings();
-  return {
-    ...base,
-    font_size: wm.font_size || undefined,
-    font_family: wm.font_family,
-    position: wm.position,
-    show_sys_time: wm.show_sys_time,
-  };
+  return { ...base, font_size: wm.font_size || undefined, font_family: wm.font_family, position: wm.position, show_sys_time: wm.show_sys_time };
 }
 
-// ----- Status Bar -----
+/* ----- Status Bar ----- */
 function setStatus(msg, type = 'ok') {
   $('#statusText').textContent = msg;
   const dot = $('#statusDot');
@@ -1624,12 +1637,12 @@ async function pollStatus() {
     if (s.task_status && s.task_status.message) {
       setStatus(s.task_status.message, s.task_status.type || 'ok');
     }
-  } catch(e) { /* 静默 */ }
+  } catch(e) {}
 }
 
-// ================================================================
-//  CATEGORIES
-// ================================================================
+/* ================================================================
+   CATEGORIES
+   ================================================================ */
 async function loadCategories() {
   try {
     const data = await api('/api/apod/categories');
@@ -1651,7 +1664,6 @@ function renderCategories() {
       <span class="cat-count">${cat.count}</span>
     </div>
   `).join('');
-
   list.querySelectorAll('.cat-item').forEach(item => {
     item.addEventListener('click', async () => {
       state.currentCat = item.dataset.key;
@@ -1662,35 +1674,35 @@ function renderCategories() {
   });
 }
 
-// ================================================================
-//  SOURCE SWITCHING
-// ================================================================
+/* ================================================================
+   SOURCE SWITCHING
+   ================================================================ */
+const SOURCE_NAMES = {
+  apod: '天文图片模式 · NASA APOD 每日精选',
+  satellite: '卫星影像模式 · 地球静止卫星实时影像',
+  fy4: '风云四号 FY-4B 真彩色影像 · 中国 NSMC',
+  sdo: '太阳观测模式 · NASA SDO 太阳动力学天文台',
+};
+
 function switchSource(source) {
   state.source = source;
-  $$('.source-tab').forEach(t => t.classList.remove('active'));
-  const activeTab = $(`.source-tab[data-source="${source}"]`);
-  if (activeTab) activeTab.classList.add('active');
+  $$('.nav-item').forEach(t => t.classList.remove('active'));
+  const activeNav = $(`.nav-item[data-source="${source}"]`);
+  if (activeNav) activeNav.classList.add('active');
 
-  $$('.panel').forEach(p => p.classList.remove('visible'));
-  $(`#panel${source === 'apod' ? 'Apod' : source === 'satellite' ? 'Sat' : 'Sdo'}`).classList.add('visible');
+  $$('.panel').forEach(p => p.classList.remove('active'));
+  const panelMap = { apod: '#panelApod', satellite: '#panelSat', fy4: '#panelFy4', sdo: '#panelSdo' };
+  const panel = $(panelMap[source]);
+  if (panel) panel.classList.add('active');
 
-  $('#apodSidebar').style.display = source === 'apod' ? '' : 'none';
-  $('#satSidebar').style.display = source === 'satellite' ? '' : 'none';
-  $('#sdoSidebar').style.display = source === 'sdo' ? '' : 'none';
-
-  const names = {
-    apod: '天文图片模式 — NASA APOD 每日精选',
-    satellite: '卫星影像模式 — 地球静止卫星实时影像',
-    sdo: '太阳观测模式 — NASA SDO 太阳动力学天文台'
-  };
-  setStatus(names[source]);
+  setStatus(SOURCE_NAMES[source]);
 
   if (source === 'apod') loadApodImages();
 }
 
-// ================================================================
-//  APOD IMAGES
-// ================================================================
+/* ================================================================
+   APOD
+   ================================================================ */
 async function loadApodImages() {
   try {
     const data = await api(`/api/apod/images?category=${state.currentCat}`);
@@ -1711,23 +1723,16 @@ function renderApodPreview() {
     $('#apodEmpty').style.display = 'none';
     $('#apodOverlay').style.display = 'flex';
     $('#apodTitle').textContent = img.title || 'NASA 每日天文图片';
-    $('#apodDate').textContent = img.date || '';
-    $('#apodCopyright').textContent = img.copyright ? '© ' + img.copyright : '';
+    const metaParts = [img.date, img.copyright ? '© ' + img.copyright : ''].filter(Boolean);
+    $('#apodMeta').textContent = metaParts.join('  ·  ');
     $('#apodRes').textContent = img.hdurl ? 'HD 可用' : 'SD';
     setPreviewImage('#panelApod .preview-placeholder', img.preview_url || img.hdurl || img.url || null);
   } else {
     $('#apodEmpty').style.display = 'flex';
     $('#apodOverlay').style.display = 'none';
-
-    // 检查分类是否有数据，如果有的话可能是还没获取
-    if (state.categories.every(c => c.count === 0)) {
-      $('#apodEmpty .empty-title').textContent = '还没有图片数据';
-      $('#apodEmpty .empty-desc').textContent = '点击下方「获取历史」拉取 NASA 天文每日图片';
-    }
   }
 }
 
-// Navigation
 function navPrev() {
   if (state.apodImages.length === 0) return;
   state.currentIdx = Math.max(0, state.currentIdx - 1);
@@ -1739,12 +1744,10 @@ function navNext() {
   renderApodPreview();
 }
 
-// ================================================================
-//  APOD ACTIONS
-// ================================================================
 async function fetchApod() {
   setStatus('正在获取 NASA 图片...', 'loading');
   $('#btnFetch').disabled = true;
+  showLoading('panelApod');
   try {
     const data = await api('/api/apod/fetch', { method: 'POST' });
     setStatus(`已获取 ${data.total} 张图片（新增 ${data.new} 张）`, 'ok');
@@ -1753,6 +1756,7 @@ async function fetchApod() {
     setStatus('获取失败: ' + e.message, 'error');
   } finally {
     $('#btnFetch').disabled = false;
+    hideLoading('panelApod');
   }
 }
 
@@ -1762,32 +1766,20 @@ async function updateApod() {
     const images = await api('/api/apod/images?category=all');
     const today = new Date().toISOString().substring(0, 10);
     const hasToday = images.images.some(img => img.date === today);
-    if (hasToday) {
-      setStatus('今日已是最新', 'ok');
-    } else {
-      await fetchApod();
-    }
+    if (hasToday) { setStatus('今日已是最新', 'ok'); }
+    else { await fetchApod(); }
   } catch (e) {
     setStatus('更新检查失败: ' + e.message, 'error');
   }
 }
 
 async function setApodWallpaper() {
-  if (state.apodImages.length === 0) {
-    setStatus('没有可用的图片', 'error');
-    return;
-  }
+  if (state.apodImages.length === 0) { setStatus('没有可用的图片', 'error'); return; }
   const img = state.apodImages[state.currentIdx];
   setStatus('正在下载并设置壁纸...', 'loading');
   try {
-    // 先下载
-    const dl = await api('/api/apod/download', {
-      method: 'POST',
-      body: JSON.stringify({ date: img.date, hd: true }),
-    });
-    // 加水印并设置
+    const dl = await api('/api/apod/download', { method: 'POST', body: JSON.stringify({ date: img.date, hd: true }) });
     const style = state.config?.wallpaper_style || 'fill';
-    const catName = img.category_name || '';
     await api('/api/wallpaper/watermark-and-set', {
       method: 'POST',
       body: JSON.stringify(wmPayload({
@@ -1804,55 +1796,86 @@ async function setApodWallpaper() {
   }
 }
 
-// ================================================================
-//  SATELLITE ACTIONS
-// ================================================================
+/* ================================================================
+   SATELLITE
+   ================================================================ */
+const SATELLITES = {
+  'himawari':      { name: '向日葵 8 号 (Himawari-8)', agency: 'JMA 日本', region: '亚太地区', freq: '每 10 分钟', color: '#00B4D8' },
+  'goes-16':       { name: 'GOES-16 (美洲)',        agency: 'NOAA 美国', region: '美洲',    freq: '每 10 分钟', color: '#7BA3E8' },
+  'goes-18':       { name: 'GOES-18 (美洲西)',      agency: 'NOAA 美国', region: '美洲西部', freq: '每 10 分钟', color: '#5B8DEF' },
+  'gk2a':          { name: 'GK2A (韩国)',           agency: 'KMA 韩国', region: '东亚',    freq: '每 10 分钟', color: '#00C9A7' },
+  'meteosat-0deg': { name: 'Meteosat 0度 (欧洲/非洲)', agency: 'EUMETSAT 欧洲', region: '欧洲/非洲', freq: '每 15 分钟', color: '#8FBC8F' },
+  'meteosat-9':    { name: 'Meteosat-9 (印度洋)',   agency: 'EUMETSAT 欧洲', region: '印度洋', freq: '每 15 分钟', color: '#DAA520' },
+};
+let selectedSatellite = 'himawari';
+
+function initSatDropdown() {
+  const menu = $('#satMenu');
+  menu.innerHTML = Object.entries(SATELLITES).map(([key, s]) => `
+    <div class="dropdown-option${key === selectedSatellite ? ' selected' : ''}" data-value="${key}">
+      <span class="color-dot" style="background:${s.color}"></span>
+      <span>${s.name}</span>
+    </div>
+  `).join('');
+  menu.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      selectedSatellite = opt.dataset.value;
+      updateSatSelection();
+      $('#satDropdown').classList.remove('open');
+    });
+  });
+}
+
+function updateSatSelection() {
+  const s = SATELLITES[selectedSatellite];
+  $('#satTriggerText').textContent = s.name;
+  $('#satAgency').textContent = s.agency;
+  $('#satRegion').textContent = s.region;
+  $('#satFreq').textContent = s.freq;
+  $('#satMenu').querySelectorAll('.dropdown-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.value === selectedSatellite);
+  });
+}
+
 async function fetchSatellite() {
   setStatus('正在获取卫星影像...', 'loading');
   $('#btnSatFetch').disabled = true;
+  showLoading('panelSat');
   try {
-    const satId = $('#satSelect').value;
-    const color = $('#satColorGroup .radio-item.selected').dataset.value;
-    const size = parseInt($('#satSizeGroup .radio-item.selected').dataset.value);
-
+    const color = $('#satColorSeg .segmented-item.active').dataset.value;
+    const size = parseInt($('#satSizeSeg .segmented-item.active').dataset.value);
     const data = await api('/api/satellite/fetch', {
       method: 'POST',
-      body: JSON.stringify({ satellite_id: satId, color: color, size: size }),
+      body: JSON.stringify({ satellite_id: selectedSatellite, color: color, size: size }),
     });
-
     state.lastSatPath = data.path;
     $('#satEmpty').style.display = 'none';
     $('#satOverlay').style.display = 'flex';
-    $('#satTitle').textContent = data.satellite_name || satId;
-    const now = new Date();
-    $('#satTime').textContent = now.toISOString().replace('T', ' ').substring(0, 16) + ' UTC+8';
+    $('#satTitle').textContent = data.satellite_name || selectedSatellite;
+    $('#satTime').textContent = formatLocalTime(new Date());
     $('#satRes').textContent = size + 'px';
     setPreviewImage('#panelSat .preview-placeholder', data.url || null);
-
-    setStatus('卫星影像已更新 | ' + (data.satellite_name || satId), 'ok');
+    setStatus('卫星影像已更新 | ' + (data.satellite_name || selectedSatellite), 'ok');
   } catch (e) {
     setStatus('卫星获取失败: ' + e.message, 'error');
   } finally {
     $('#btnSatFetch').disabled = false;
+    hideLoading('panelSat');
   }
 }
 
 async function setSatWallpaper() {
-  if (!state.lastSatPath) {
-    setStatus('请先获取卫星影像', 'warning');
-    return;
-  }
+  if (!state.lastSatPath) { setStatus('请先获取卫星影像', 'warning'); return; }
   setStatus('正在设置壁纸...', 'loading');
   try {
-    const satId = $('#satSelect').value;
     const style = state.config?.wallpaper_style || 'fill';
     await api('/api/wallpaper/watermark-and-set', {
       method: 'POST',
       body: JSON.stringify(wmPayload({
         path: state.lastSatPath,
-        left_text: '来源: ' + (satId === 'himawari' ? 'Himawari-8 亚太' : satId.toUpperCase()),
+        left_text: '来源: ' + SATELLITES[selectedSatellite].name,
         right_text: '影像时间: ' + formatLocalTime(new Date()),
-        output_key: 'sat_' + satId,
+        output_key: 'sat_' + selectedSatellite,
         style: style,
       })),
     });
@@ -1862,47 +1885,114 @@ async function setSatWallpaper() {
   }
 }
 
-// ================================================================
-//  SDO ACTIONS
-// ================================================================
+/* ================================================================
+   FY-4B
+   ================================================================ */
+const FY4_SATELLITES = {
+  'fy4b': { name: 'FY-4B (风云四号B星)', product: 'GCLR 地理真彩' },
+  'fy4a': { name: 'FY-4A (风云四号A星)', product: 'MTCC 多通道真彩' },
+};
+let selectedFy4 = 'fy4b';
+
+function initFy4Dropdown() {
+  const menu = $('#fy4Menu');
+  menu.innerHTML = Object.entries(FY4_SATELLITES).map(([key, s]) => `
+    <div class="dropdown-option${key === selectedFy4 ? ' selected' : ''}" data-value="${key}">
+      <span class="color-dot" style="background:var(--fy4-primary)"></span>
+      <span>${s.name}</span>
+    </div>
+  `).join('');
+  menu.querySelectorAll('.dropdown-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      selectedFy4 = opt.dataset.value;
+      $('#fy4TriggerText').textContent = FY4_SATELLITES[selectedFy4].name;
+      $('#fy4Menu').querySelectorAll('.dropdown-option').forEach(o => o.classList.toggle('selected', o.dataset.value === selectedFy4));
+      $('#fy4Dropdown').classList.remove('open');
+    });
+  });
+}
+
+async function fetchFy4() {
+  setStatus('正在获取风云四号影像...', 'loading');
+  $('#btnFy4Fetch').disabled = true;
+  showLoading('panelFy4');
+  try {
+    const resolution = $('#fy4SizeSeg .segmented-item.active').dataset.value;
+    const data = await api('/api/fy4/fetch', {
+      method: 'POST',
+      body: JSON.stringify({ satellite_id: selectedFy4, resolution: resolution }),
+    });
+    state.lastFy4Path = data.path;
+    $('#fy4Empty').style.display = 'none';
+    $('#fy4Overlay').style.display = 'flex';
+    $('#fy4Title').textContent = data.satellite_name || 'FY-4B 真彩色全圆盘';
+    $('#fy4Time').textContent = formatLocalTime(new Date());
+    const resLabel = { standard: '2200px', hd: '4400px', uhd: '8192px' }[resolution] || resolution;
+    $('#fy4Res').textContent = resLabel;
+    setPreviewImage('#panelFy4 .preview-placeholder', data.url || null);
+    setStatus('风云四号影像已更新 | ' + (data.satellite_name || selectedFy4), 'ok');
+  } catch (e) {
+    setStatus('风云四号获取失败: ' + e.message, 'error');
+  } finally {
+    $('#btnFy4Fetch').disabled = false;
+    hideLoading('panelFy4');
+  }
+}
+
+async function setFy4Wallpaper() {
+  if (!state.lastFy4Path) { setStatus('请先获取风云四号影像', 'warning'); return; }
+  setStatus('正在设置壁纸...', 'loading');
+  try {
+    const style = state.config?.wallpaper_style || 'fill';
+    await api('/api/wallpaper/watermark-and-set', {
+      method: 'POST',
+      body: JSON.stringify(wmPayload({
+        path: state.lastFy4Path,
+        left_text: '来源: 风云四号 FY-4B 真彩色',
+        right_text: '影像时间: ' + formatLocalTime(new Date()),
+        output_key: 'fy4_' + selectedFy4,
+        style: style,
+      })),
+    });
+    setStatus('风云四号壁纸已设置', 'ok');
+  } catch (e) {
+    setStatus('设置失败: ' + e.message, 'error');
+  }
+}
+
+/* ================================================================
+   SDO
+   ================================================================ */
 async function fetchSdo() {
   setStatus('正在获取太阳图像...', 'loading');
   $('#btnSdoFetch').disabled = true;
+  showLoading('panelSdo');
   try {
-    const band = $('#sdoBandGroup .radio-item.selected').dataset.value;
-    const bandEl = $('#sdoBandGroup .radio-item.selected');
-    const bandText = bandEl ? bandEl.textContent.trim() : band;
-
-    const data = await api('/api/sdo/fetch', {
-      method: 'POST',
-      body: JSON.stringify({ band: band }),
-    });
-
+    const bandEl = $('#sdoBandGroup .band-item.active');
+    const band = bandEl ? bandEl.dataset.value : '0304';
+    const data = await api('/api/sdo/fetch', { method: 'POST', body: JSON.stringify({ band: band }) });
     state.lastSdoPath = data.path;
     $('#sdoEmpty').style.display = 'none';
     $('#sdoOverlay').style.display = 'flex';
-    $('#sdoTitle').textContent = data.band_name || bandText;
-    const now = new Date();
-    $('#sdoTime').textContent = 'NASA SDO · ' + now.toISOString().replace('T', ' ').substring(0, 16);
-    $('#sdoRes').textContent = '4096 × 4096';
+    $('#sdoTitle').textContent = data.band_name || band;
+    $('#sdoTime').textContent = 'NASA SDO · ' + formatLocalTime(new Date());
+    $('#sdoRes').textContent = '2048 × 2048';
     setPreviewImage('#panelSdo .preview-placeholder', data.url || null);
-
     setStatus('太阳图像已更新 | ' + (data.band_name || band), 'ok');
   } catch (e) {
     setStatus('SDO 获取失败: ' + e.message, 'error');
   } finally {
     $('#btnSdoFetch').disabled = false;
+    hideLoading('panelSdo');
   }
 }
 
 async function setSdoWallpaper() {
-  if (!state.lastSdoPath) {
-    setStatus('请先获取太阳图像', 'warning');
-    return;
-  }
+  if (!state.lastSdoPath) { setStatus('请先获取太阳图像', 'warning'); return; }
   setStatus('正在设置壁纸...', 'loading');
   try {
-    const band = $('#sdoBandGroup .radio-item.selected').dataset.value;
+    const bandEl = $('#sdoBandGroup .band-item.active');
+    const band = bandEl ? bandEl.dataset.value : '0304';
     const style = state.config?.wallpaper_style || 'fill';
     await api('/api/wallpaper/watermark-and-set', {
       method: 'POST',
@@ -1920,30 +2010,32 @@ async function setSdoWallpaper() {
   }
 }
 
-// ================================================================
-//  AUTO REFRESH TOGGLES
-// ================================================================
+/* ================================================================
+   AUTO REFRESH TOGGLES
+   ================================================================ */
 function toggleAutoRefresh(type) {
-  if (type === 'sat') {
-    state.satAutoRefresh = !state.satAutoRefresh;
-    $('#satAutoToggle').classList.toggle('on', state.satAutoRefresh);
-    setStatus(state.satAutoRefresh ? '卫星自动刷新已开启' : '卫星自动刷新已关闭', 'ok');
-  } else {
-    state.sdoAutoRefresh = !state.sdoAutoRefresh;
-    $('#sdoAutoToggle').classList.toggle('on', state.sdoAutoRefresh);
-    setStatus(state.sdoAutoRefresh ? 'SDO 自动刷新已开启' : 'SDO 自动刷新已关闭', 'ok');
-  }
+  const map = {
+    sat: { state: 'satAutoRefresh', btn: '#satAutoToggle', wrap: '#satCountdownWrap' },
+    fy4: { state: 'fy4AutoRefresh', btn: '#fy4AutoToggle', wrap: '#fy4CountdownWrap' },
+    sdo: { state: 'sdoAutoRefresh', btn: '#sdoAutoToggle', wrap: '#sdoCountdownWrap' },
+  };
+  const m = map[type];
+  if (!m) return;
+  state[m.state] = !state[m.state];
+  const on = state[m.state];
+  $(m.btn).classList.toggle('on', on);
+  $(m.btn).innerHTML = `<span class="dot"></span>自动刷新: ${on ? '开' : '关'}`;
+  $(m.wrap).classList.toggle('paused', !on);
+  const names = { sat: '卫星', fy4: '风云四号', sdo: 'SDO' };
+  setStatus(`${names[type]}自动刷新已${on ? '开启' : '关闭'}`, 'ok');
 }
 
-// ================================================================
-//  SETTINGS
-// ================================================================
-function openSettings() {
-  $('#settingsModal').style.display = 'flex';
-}
-function closeSettings() {
-  $('#settingsModal').style.display = 'none';
-}
+/* ================================================================
+   SETTINGS
+   ================================================================ */
+function openSettings() { $('#settingsModal').classList.add('show'); }
+function closeSettings() { $('#settingsModal').classList.remove('show'); }
+
 async function saveSettings() {
   const stylePill = $('#stylePills .style-pill.selected');
   const wallpaperStyle = stylePill ? stylePill.dataset.value : 'fill';
@@ -1961,30 +2053,14 @@ async function saveSettings() {
     await api('/api/config', {
       method: 'POST',
       body: JSON.stringify({
-        api_key: apiKey,
-        wallpaper_style: wallpaperStyle,
-        auto_update: autoUpdate,
-        hd: hd,
-        autostart: autostart,
-        wm_font_size: wmFontSize,
-        wm_font_family: wmFontFamily,
-        wm_position: wmPosition,
-        wm_show_sys_time: wmShowSysTime,
+        api_key: apiKey, wallpaper_style: wallpaperStyle, auto_update: autoUpdate,
+        hd: hd, autostart: autostart,
+        wm_font_size: wmFontSize, wm_font_family: wmFontFamily,
+        wm_position: wmPosition, wm_show_sys_time: wmShowSysTime,
         sdo_band: sdoBand,
       }),
     });
-    state.config = {
-      ...state.config,
-      wallpaper_style: wallpaperStyle,
-      auto_update: autoUpdate,
-      hd,
-      autostart,
-      wm_font_size: wmFontSize,
-      wm_font_family: wmFontFamily,
-      wm_position: wmPosition,
-      wm_show_sys_time: wmShowSysTime,
-      sdo_band: sdoBand,
-    };
+    state.config = { ...state.config, wallpaper_style: wallpaperStyle, auto_update: autoUpdate, hd, autostart, wm_font_size: wmFontSize, wm_font_family: wmFontFamily, wm_position: wmPosition, wm_show_sys_time: wmShowSysTime, sdo_band: sdoBand };
     closeSettings();
     setStatus('设置已保存', 'ok');
   } catch (e) {
@@ -1992,21 +2068,13 @@ async function saveSettings() {
   }
 }
 
-// ================================================================
-//  SDO 波段 & 连通性测试
-// ================================================================
+/* ================================================================
+   SDO BANDS & CONNECTIVITY
+   ================================================================ */
 const SDO_BAND_COLORS = {
-  '0304': '#e03040',
-  '0171': '#d4a030',
-  '0211': '#e07080',
-  '0193': '#c06030',
-  '0094': '#40c080',
-  '0131': '#40a0d0',
-  '0335': '#c0a040',
-  '1600': '#e0c060',
-  '1700': '#e0a0c0',
-  'HMIIC': '#f0e0c0',
-  'HMIB': '#60a0e0',
+  '0304': '#e03040', '0171': '#d4a030', '0211': '#e07080', '0193': '#c06030',
+  '0094': '#40c080', '0131': '#40a0d0', '0335': '#c0a040', '1600': '#e0c060',
+  '1700': '#e0a0c0', 'HMIIC': '#f0e0c0', 'HMIB': '#60a0e0',
 };
 
 async function loadSdoBands() {
@@ -2014,7 +2082,6 @@ async function loadSdoBands() {
     const res = await api('/api/sdo/bands');
     const bands = res.bands || [];
 
-    // 填充设置面板下拉
     const sel = $('#sdoBandSettingSelect');
     if (sel) {
       sel.innerHTML = '';
@@ -2024,24 +2091,22 @@ async function loadSdoBands() {
         opt.textContent = b.name;
         sel.appendChild(opt);
       });
-      if (state.config && state.config.sdo_band) {
-        sel.value = state.config.sdo_band;
-      }
+      if (state.config && state.config.sdo_band) sel.value = state.config.sdo_band;
     }
 
-    // 填充侧边栏波段选择器
     const group = $('#sdoBandGroup');
     if (group) {
       group.innerHTML = '';
       const defaultBand = (state.config && state.config.sdo_band) || '0304';
       bands.forEach(b => {
         const item = document.createElement('div');
-        item.className = 'radio-item' + (b.key === defaultBand ? ' selected' : '');
+        item.className = 'band-item' + (b.key === defaultBand ? ' active' : '');
         item.dataset.value = b.key;
-        item.innerHTML = `<span class="band-swatch" style="background:${SDO_BAND_COLORS[b.key] || '#888'}"></span>${b.name}`;
+        const wl = b.name.match(/[\d]+/);
+        item.innerHTML = `<span class="band-wavelength">${b.key.startsWith('HMI') ? 'HMI' : (wl ? wl[0] + ' Å' : b.key)}</span><span>${b.name.replace(/^\d+\s*Å\s*[·—-]?\s*/, '').replace(/^\d+\s*Å\s*/, '')}</span>`;
         item.addEventListener('click', () => {
-          group.querySelectorAll('.radio-item').forEach(i => i.classList.remove('selected'));
-          item.classList.add('selected');
+          group.querySelectorAll('.band-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
         });
         group.appendChild(item);
       });
@@ -2060,11 +2125,8 @@ async function testSdoConnectivity() {
     const res = await api('/api/sdo/test', { method: 'POST', body: JSON.stringify({}) });
     const results = res.results || [];
     const okCount = results.filter(r => r.ok).length;
-    const lines = results.map(r =>
-      (r.ok ? '✓' : '✗') + ' ' + r.name + (r.latency_ms != null ? ' (' + r.latency_ms + 'ms)' : ' 失败')
-    );
-    const summary = `连通性测试完成：${okCount}/${results.length} 个波段可用\n` + lines.join('\n');
-    if (resultEl) resultEl.textContent = summary;
+    const lines = results.map(r => (r.ok ? '✓' : '✗') + ' ' + r.name + (r.latency_ms != null ? ' (' + r.latency_ms + 'ms)' : ' 失败'));
+    if (resultEl) resultEl.textContent = `连通性测试完成：${okCount}/${results.length} 个波段可用\n` + lines.join('\n');
   } catch (e) {
     if (resultEl) resultEl.textContent = '测试失败: ' + e.message;
   } finally {
@@ -2072,18 +2134,16 @@ async function testSdoConnectivity() {
   }
 }
 
-// ================================================================
-//  日志查看器
-// ================================================================
+/* ================================================================
+   LOG VIEWER
+   ================================================================ */
 async function openLogViewer() {
-  closeSettings(); // 关闭设置面板
-  $('#logModal').style.display = 'flex';
+  closeSettings();
+  $('#logModal').classList.add('show');
   await loadLogFiles();
   await loadLogContent();
 }
-function closeLogViewer() {
-  $('#logModal').style.display = 'none';
-}
+function closeLogViewer() { $('#logModal').classList.remove('show'); }
 async function loadLogFiles() {
   try {
     const res = await api('/api/logs/list');
@@ -2092,13 +2152,10 @@ async function loadLogFiles() {
     (res.logs || []).forEach(f => {
       const opt = document.createElement('option');
       opt.value = f.name;
-      const kb = (f.size / 1024).toFixed(1);
-      opt.textContent = f.name + ' (' + kb + ' KB)';
+      opt.textContent = f.name + ' (' + (f.size / 1024).toFixed(1) + ' KB)';
       sel.appendChild(opt);
     });
-  } catch (e) {
-    console.error('Load log files failed:', e);
-  }
+  } catch (e) { console.error('Load log files failed:', e); }
 }
 async function loadLogContent() {
   const file = $('#logFileSelect').value;
@@ -2107,7 +2164,7 @@ async function loadLogContent() {
     const res = await api('/api/logs/read?file=' + encodeURIComponent(file) + '&lines=500');
     if (res.ok) {
       $('#logContent').textContent = res.content || '(日志为空)';
-      $('#logInfo').textContent = '共 ' + res.total_lines + ' 行，显示最新 ' + (res.content ? res.content.split('\n').length - 1 : 0) + ' 行';
+      $('#logInfo').textContent = '共 ' + res.total_lines + ' 行';
     } else {
       $('#logContent').textContent = '加载失败: ' + (res.error || '未知错误');
     }
@@ -2116,170 +2173,142 @@ async function loadLogContent() {
   }
 }
 
-// ================================================================
-//  HELP
-// ================================================================
-function openHelp() { $('#helpModal').style.display = 'flex'; }
-function closeHelp() { $('#helpModal').style.display = 'none'; }
+/* ================================================================
+   HELP
+   ================================================================ */
+function openHelp() { $('#helpModal').classList.add('show'); }
+function closeHelp() { $('#helpModal').classList.remove('show'); }
 
-// ================================================================
-//  RADIO GROUPS
-// ================================================================
-function setupRadioGroup(containerId, onChange) {
+/* ================================================================
+   DROPDOWN & SEGMENTED HELPERS
+   ================================================================ */
+function setupDropdown(id) {
+  const dd = $(id);
+  const trigger = dd.querySelector('.dropdown-trigger');
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const wasOpen = dd.classList.contains('open');
+    $$('.dropdown').forEach(d => d.classList.remove('open'));
+    if (!wasOpen) dd.classList.add('open');
+  });
+}
+function setupSegmented(containerId, onChange) {
   const container = $(containerId);
   if (!container) return;
-  container.querySelectorAll('.radio-item').forEach(item => {
+  container.querySelectorAll('.segmented-item').forEach(item => {
     item.addEventListener('click', () => {
-      container.querySelectorAll('.radio-item').forEach(i => i.classList.remove('selected'));
-      item.classList.add('selected');
+      container.querySelectorAll('.segmented-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
       if (onChange) onChange(item.dataset.value);
     });
   });
 }
 
-// ---- Frameless Window Controls ----
+/* ================================================================
+   WINDOW CONTROLS (frameless)
+   ================================================================ */
 let _winControlsBound = false;
-
 function bindWindowControls() {
   if (_winControlsBound) return;
-  const winControls = document.getElementById('windowControls');
   const hasApi = window.pywebview && window.pywebview.api;
-
-  if (!hasApi) {
-    // 无 pywebview API（浏览器环境）：隐藏窗口控制按钮
-    if (winControls) winControls.style.display = 'none';
-    return;
-  }
-
+  if (!hasApi) return;
   _winControlsBound = true;
-
-  // 标记 body 为 pywebview 环境（供 CSS 使用）
   document.body.classList.add('pywebview');
-  if (winControls) winControls.style.display = '';
+  $('#windowControls').style.display = '';
+  $('#titlebar').classList.add('pywebview-drag-region');
 
-  // 阻止 header 内交互元素的 mousedown 冒泡，避免误触发 pywebview 拖动
-  document.querySelectorAll('.header button, .header select, .header input, .header a').forEach(el => {
-    el.addEventListener('mousedown', e => e.stopPropagation());
-  });
+  $('#winMinimize').addEventListener('click', () => window.pywebview.api.minimize && window.pywebview.api.minimize());
+  $('#winMaximize').addEventListener('click', () => window.pywebview.api.toggle_maximize && window.pywebview.api.toggle_maximize());
+  $('#winClose').addEventListener('click', () => { $('#exitModal').classList.add('show'); });
 
-  const btnMin = document.getElementById('winMinimize');
-  const btnMax = document.getElementById('winMaximize');
-  const btnClose = document.getElementById('winClose');
-
-  if (btnMin) {
-    btnMin.addEventListener('click', () => {
-      if (window.pywebview.api.minimize) window.pywebview.api.minimize();
-    });
-  }
-  if (btnMax) {
-    btnMax.addEventListener('click', () => {
-      if (window.pywebview.api.toggle_maximize) window.pywebview.api.toggle_maximize();
-    });
-  }
-  if (btnClose) {
-    btnClose.addEventListener('click', () => {
-      // 弹出退出选择：最小化到后台 / 关闭软件
-      const exitModal = document.getElementById('exitModal');
-      if (exitModal) exitModal.style.display = 'flex';
-    });
-  }
-
-  // ---- Exit confirm modal ----
-  const exitModal = document.getElementById('exitModal');
-  if (exitModal) {
-    const closeExit = () => { exitModal.style.display = 'none'; };
-    document.getElementById('closeExitModal')?.addEventListener('click', closeExit);
-    document.getElementById('closeExitBtn')?.addEventListener('click', closeExit);
-    document.getElementById('exitToTray')?.addEventListener('click', () => {
-      closeExit();
-      if (window.pywebview.api.hide) window.pywebview.api.hide();
-    });
-    document.getElementById('exitQuit')?.addEventListener('click', () => {
-      if (window.pywebview.api.quit_app) window.pywebview.api.quit_app();
-    });
-  }
+  const exitModal = $('#exitModal');
+  const closeExit = () => exitModal.classList.remove('show');
+  $('#closeExitModal').addEventListener('click', closeExit);
+  $('#closeExitBtn').addEventListener('click', closeExit);
+  $('#exitToTray').addEventListener('click', () => { closeExit(); window.pywebview.api.hide && window.pywebview.api.hide(); });
+  $('#exitQuit').addEventListener('click', () => { window.pywebview.api.quit_app && window.pywebview.api.quit_app(); });
 }
-
 function initWindowControls() {
-  // 立即尝试（可能 API 已就绪）
   bindWindowControls();
-  // pywebview 5+ 会在 API 注入完成后触发 pywebviewready 事件
-  window.addEventListener('pywebviewready', () => {
-    bindWindowControls();
-  });
+  window.addEventListener('pywebviewready', () => bindWindowControls());
 }
 
-// ================================================================
-//  INITIALIZATION
-// ================================================================
+/* ================================================================
+   COUNTDOWN TIMERS
+   ================================================================ */
+function startCountdown(displayId, wrapId, intervalSeconds) {
+  let remaining = intervalSeconds;
+  const set = () => {
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    $(displayId).textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+  set();
+  setInterval(() => {
+    remaining = remaining > 0 ? remaining - 1 : intervalSeconds;
+    set();
+  }, 1000);
+}
+
+/* ================================================================
+   INITIALIZATION
+   ================================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
-  // ---- Window controls (frameless pywebview) ----
   initWindowControls();
 
-  // Load config from backend
+  // Config
   try {
     state.config = await api('/api/config');
-    // Apply config to UI
     if (state.config.wallpaper_style) {
-      $$('.style-pill').forEach(p => {
-        p.classList.toggle('selected', p.dataset.value === state.config.wallpaper_style);
-      });
+      $$('.style-pill').forEach(p => p.classList.toggle('selected', p.dataset.value === state.config.wallpaper_style));
     }
-    if (state.config.api_key && state.config.api_key !== 'DEMO_KEY') {
-      $('#apiKeyInput').value = state.config.api_key;
-    }
-    if (state.config.auto_update !== undefined) {
-      $('#toggleAutoUpdate .toggle-switch').classList.toggle('on', state.config.auto_update);
-    }
-    if (state.config.hd !== undefined) {
-      $('#toggleHD .toggle-switch').classList.toggle('on', state.config.hd);
-    }
-    if (state.config.autostart !== undefined) {
-      $('#toggleAutostart .toggle-switch').classList.toggle('on', state.config.autostart);
-    }
-    // 水印设置
-    if (state.config.wm_font_size !== undefined) {
-      $('#wmFontSizeInput').value = state.config.wm_font_size;
-    }
-    if (state.config.wm_font_family) {
-      $('#wmFontFamilySelect').value = state.config.wm_font_family;
-    }
-    if (state.config.wm_position) {
-      $('#wmPositionSelect').value = state.config.wm_position;
-    }
-    if (state.config.wm_show_sys_time !== undefined) {
-      $('#wmShowSysTimeToggle').classList.toggle('on', state.config.wm_show_sys_time);
-    }
+    if (state.config.api_key && state.config.api_key !== 'DEMO_KEY') $('#apiKeyInput').value = state.config.api_key;
+    if (state.config.auto_update !== undefined) $('#toggleAutoUpdate .toggle-switch').classList.toggle('on', state.config.auto_update);
+    if (state.config.hd !== undefined) $('#toggleHD .toggle-switch').classList.toggle('on', state.config.hd);
+    if (state.config.autostart !== undefined) $('#toggleAutostart .toggle-switch').classList.toggle('on', state.config.autostart);
+    if (state.config.wm_font_size !== undefined) $('#wmFontSizeInput').value = state.config.wm_font_size;
+    if (state.config.wm_font_family) $('#wmFontFamilySelect').value = state.config.wm_font_family;
+    if (state.config.wm_position) $('#wmPositionSelect').value = state.config.wm_position;
+    if (state.config.wm_show_sys_time !== undefined) $('#wmShowSysTimeToggle').classList.toggle('on', state.config.wm_show_sys_time);
   } catch (e) {
-    console.warn('Config load failed, using defaults:', e.message);
+    console.warn('Config load failed:', e.message);
   }
 
-  // 加载 SDO 波段列表到设置面板
   await loadSdoBands();
 
-  // Source tabs
-  $$('.source-tab').forEach(tab => {
-    tab.addEventListener('click', () => switchSource(tab.dataset.source));
+  // Navigation
+  $$('.nav-item').forEach(nav => {
+    nav.addEventListener('click', () => switchSource(nav.dataset.source));
   });
 
-  // Load categories and images
   await loadCategories();
 
-  // Navigation
+  // APOD
   $('#btnPrev').addEventListener('click', navPrev);
   $('#btnNext').addEventListener('click', navNext);
-
-  // APOD buttons
   $('#btnFetch').addEventListener('click', fetchApod);
   $('#btnUpdate').addEventListener('click', updateApod);
   $('#btnSetApod').addEventListener('click', setApodWallpaper);
 
-  // Satellite buttons
+  // Satellite
+  initSatDropdown();
+  updateSatSelection();
+  setupDropdown('#satDropdown');
+  setupSegmented('#satColorSeg');
+  setupSegmented('#satSizeSeg');
   $('#btnSatFetch').addEventListener('click', fetchSatellite);
   $('#btnSetSat').addEventListener('click', setSatWallpaper);
   $('#satAutoToggle').addEventListener('click', () => toggleAutoRefresh('sat'));
 
-  // SDO buttons
+  // FY-4B
+  initFy4Dropdown();
+  setupDropdown('#fy4Dropdown');
+  setupSegmented('#fy4SizeSeg');
+  $('#btnFy4Fetch').addEventListener('click', fetchFy4);
+  $('#btnSetFy4').addEventListener('click', setFy4Wallpaper);
+  $('#fy4AutoToggle').addEventListener('click', () => toggleAutoRefresh('fy4'));
+
+  // SDO
   $('#btnSdoFetch').addEventListener('click', fetchSdo);
   $('#btnSetSdo').addEventListener('click', setSdoWallpaper);
   $('#sdoAutoToggle').addEventListener('click', () => toggleAutoRefresh('sdo'));
@@ -2291,7 +2320,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#saveSettings').addEventListener('click', saveSettings);
   $('#btnTestSdo').addEventListener('click', testSdoConnectivity);
 
-  // Log viewer
+  // Logs
   $('#btnViewLogs').addEventListener('click', openLogViewer);
   $('#closeLogModal').addEventListener('click', closeLogViewer);
   $('#closeLogBtn').addEventListener('click', closeLogViewer);
@@ -2305,10 +2334,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Modal overlay click to close
   $$('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.style.display = 'none';
-    });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('show'); });
   });
+
+  // Click outside dropdown to close
+  document.addEventListener('click', () => { $$('.dropdown').forEach(d => d.classList.remove('open')); });
 
   // Settings toggles
   $$('.toggle-row').forEach(row => {
@@ -2317,11 +2347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       sw.classList.toggle('on');
     });
   });
-
-  // 水印"显示系统时间"开关
-  $('#wmShowSysTimeToggle').addEventListener('click', () => {
-    $('#wmShowSysTimeToggle').classList.toggle('on');
-  });
+  $('#wmShowSysTimeToggle').addEventListener('click', () => $('#wmShowSysTimeToggle').classList.toggle('on'));
 
   // Style pills
   $$('.style-pill').forEach(pill => {
@@ -2331,48 +2357,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Radio groups
-  setupRadioGroup('#satColorGroup');
-  setupRadioGroup('#satSizeGroup');
-  setupRadioGroup('#sdoBandGroup');
-
-  // Keyboard navigation
+  // Keyboard
   document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (state.source === 'apod') {
       if (e.key === 'ArrowLeft') navPrev();
       if (e.key === 'ArrowRight') navNext();
     }
-    if (e.key === 'Escape') { closeSettings(); closeHelp(); closeLogViewer(); }
+    if (e.key === 'Escape') { closeSettings(); closeHelp(); closeLogViewer(); $('#exitModal').classList.remove('show'); }
     if (e.key === '1') switchSource('apod');
     if (e.key === '2') switchSource('satellite');
-    if (e.key === '3') switchSource('sdo');
+    if (e.key === '3') switchSource('fy4');
+    if (e.key === '4') switchSource('sdo');
   });
 
-  // Countdown timers
-  let satCountdown = 9 * 60 + 58;
-  setInterval(() => {
-    satCountdown = satCountdown > 0 ? satCountdown - 1 : 9 * 60 + 59;
-    const m = Math.floor(satCountdown / 60);
-    const s = satCountdown % 60;
-    $('#satCountdown').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }, 1000);
+  // Countdowns
+  startCountdown('#satCountdown', '#satCountdownWrap', 9 * 60 + 58);
+  startCountdown('#fy4Countdown', '#fy4CountdownWrap', 14 * 60 + 58);
+  startCountdown('#sdoCountdown', '#sdoCountdownWrap', 59 * 60 + 42);
 
-  let sdoCountdown = 59 * 60 + 42;
-  setInterval(() => {
-    sdoCountdown = sdoCountdown > 0 ? sdoCountdown - 1 : 59 * 60 + 59;
-    const m = Math.floor(sdoCountdown / 60);
-    const s = sdoCountdown % 60;
-    $('#sdoCountdown').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }, 1000);
-
-  // Periodic status poll
+  // Status poll
   setInterval(pollStatus, 5000);
 
-  // Initial status
   setStatus('就绪 — 天文图片模式 | 后端已连接');
 });
 </script>
-
 </body>
 </html>

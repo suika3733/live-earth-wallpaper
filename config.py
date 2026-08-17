@@ -18,12 +18,16 @@ DEFAULT_CONFIG = {
     "update_time": "09:00",
     "last_update": None,
     "hd": True,
-    "data_source": "apod",              # "apod" | "satellite" | "sdo"
+    "data_source": "apod",              # "apod" | "satellite" | "fy4" | "sdo"
     "satellite_id": "himawari",         # 默认卫星
     "satellite_color": "natural_color", # 颜色模式: natural_color | geocolor
     "satellite_size": 1080,             # 卫星图目标尺寸
     "satellite_auto_refresh": True,     # 卫星自动刷新
     "satellite_refresh_interval": 10,   # 卫星刷新间隔（分钟）
+    "fy4_satellite": "fy4b",            # FY-4 卫星 (fy4b / fy4a)
+    "fy4_resolution": "hd",             # FY-4 分辨率 (standard / hd / uhd)
+    "fy4_auto_refresh": True,           # FY-4 自动刷新
+    "fy4_refresh_interval": 15,         # FY-4 刷新间隔（分钟）
     "sdo_band": "0304",                 # SDO 波段
     "sdo_size": 2048,                   # SDO 目标尺寸
     "sdo_auto_refresh": True,           # SDO 自动刷新

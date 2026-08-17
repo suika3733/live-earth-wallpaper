@@ -1,9 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('ui-redesign/index.html', '.'), ('ui-redesign/logo.png', '.')]
+datas = [('ui-redesign/index.html', '.'), ('ui-redesign/logo.png', '.'), ('ui-redesign/logo.ico', '.')]
 binaries = []
-hiddenimports = ['server', 'autostart', 'providers', 'providers.geostationary', 'providers.sdo', 'pystray', 'flask', 'flask_cors', 'webview']
+hiddenimports = ['server', 'autostart', 'providers', 'providers.geostationary', 'providers.sdo', 'providers.fy4', 'pystray', 'flask', 'flask_cors', 'webview']
 tmp_ret = collect_all('PIL')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
@@ -42,4 +42,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='ui-redesign/logo.ico',
 )
