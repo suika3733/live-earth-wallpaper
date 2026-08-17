@@ -244,7 +244,6 @@ def main():
 
         api = WindowAPI()
 
-        _icon_path = _get_ico_path()
         _window_kwargs = dict(
             title="RealEarth — 真实地球",
             url=SERVER_URL,
@@ -257,8 +256,18 @@ def main():
             confirm_close=False,
             js_api=api,
         )
-        if _icon_path:
-            _window_kwargs["icon"] = _icon_path
+        # 窗口/任务栏图标由 exe 自身的 ICO 提供（PyInstaller icon 参数）。
+        # pywebview 6.2.x 的 create_window 不支持 icon 参数，传了会报错导致
+        # fallback 到浏览器。因此这里不再传 icon，仅在某些版本确实支持时启用。
+        try:
+            import inspect
+
+            _sig_params = inspect.signature(webview.create_window).parameters
+            _icon_path = _get_ico_path()
+            if "icon" in _sig_params and _icon_path:
+                _window_kwargs["icon"] = _icon_path
+        except Exception:
+            pass
 
         _window = webview.create_window(**_window_kwargs)
 
@@ -272,8 +281,8 @@ def main():
 
         logger.info("Starting pywebview window (frameless)...")
         webview.start(debug=False)
-    except Exception:
-        logger.info("pywebview unavailable, opening browser...")
+    except Exception as e:
+        logger.exception(f"pywebview unavailable ({type(e).__name__}: {e}), opening browser...")
         import webbrowser
 
         try:
