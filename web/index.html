@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RealEarth · 真实地球壁纸</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="window">
+    <!-- ===================== 标题栏 ===================== -->
+    <div class="titlebar" id="titlebar">
+      <div class="brand">
+        <div class="brand-icon"></div>
+        <div class="brand-text">
+          <div class="brand-name">RealEarth</div>
+          <div class="brand-sub">真实地球壁纸</div>
+        </div>
+      </div>
+      <div class="title-controls">
+        <button class="win-btn" id="btn-min" title="最小化">&#8212;</button>
+        <button class="win-btn" id="btn-max" title="最大化">&#9744;</button>
+        <button class="win-btn win-close" id="btn-close" title="关闭">&#10005;</button>
+      </div>
+    </div>
+
+    <!-- ===================== 主区域 ===================== -->
+    <div class="main">
+      <!-- 侧边栏 -->
+      <aside class="sidebar">
+        <div class="sidebar-stars"></div>
+        <div class="sidebar-brand">
+          <div class="sb-icon"></div>
+          <div class="sb-text">
+            <div class="sb-name">RealEarth</div>
+            <div class="sb-sub">COSMIC OBSERVATORY</div>
+          </div>
+        </div>
+
+        <div class="nav-section-title">数据源</div>
+        <nav class="nav-list">
+          <div class="nav-item active" data-source="apod" style="--nav-accent:#7C5CFC;--nav-glow:rgba(124,92,252,.25);--nav-accent-bg:rgba(124,92,252,.15)">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.4L21 11l-6.6 2.6L12 20l-2.4-6.4L3 11l6.6-2.6z"/></svg>
+            </span>
+            <span class="nav-label">天文图片</span>
+            <span class="nav-badge">APOD</span>
+          </div>
+          <div class="nav-item" data-source="satellite" style="--nav-accent:#00B4D8;--nav-glow:rgba(0,180,216,.25);--nav-accent-bg:rgba(0,180,216,.15)">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13c0 5 3 8 7 8s7-3 7-8-3-8-7-8-7 3-7 8z"/><path d="M12 13l4-2"/><circle cx="12" cy="13" r="1.5"/></svg>
+            </span>
+            <span class="nav-label">卫星影像</span>
+            <span class="nav-badge">6 颗</span>
+          </div>
+          <div class="nav-item" data-source="sdo" style="--nav-accent:#FF8C00;--nav-glow:rgba(255,140,0,.25);--nav-accent-bg:rgba(255,140,0,.15)">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>
+            </span>
+            <span class="nav-label">太阳观测</span>
+            <span class="nav-badge">5 波段</span>
+          </div>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="side-btn" id="btn-settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 00-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 00-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 000 2l-2 1.5 2 3.5 2.3-1a7 7 0 001.7 1l.3 2.5h4l.3-2.5a7 7 0 001.7-1l2.3 1 2-3.5-2-1.5a7 7 0 00.1-1z"/></svg>
+            <span>设置</span>
+          </div>
+          <div class="side-btn" id="btn-help">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h11l5 5v11a0 0 0 010 0H4z"/><path d="M15 4v5h5"/><path d="M9 13h6M9 17h6"/></svg>
+            <span>使用说明</span>
+          </div>
+          <div class="side-version">RealEarth v5.0.0</div>
+        </div>
+      </aside>
+
+      <!-- 内容区 -->
+      <main class="content">
+
+        <!-- ========== APOD 面板 ========== -->
+        <section class="panel active" data-source="apod">
+          <div class="panel-main">
+            <div class="control-panel">
+              <div class="panel-header">
+                <div class="ph-icon" style="background:var(--apod-glow)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 6.4L21 11l-6.6 2.6L12 20l-2.4-6.4L3 11l6.6-2.6z"/></svg>
+                </div>
+                <div class="ph-text">
+                  <div class="ph-title">天文图片</div>
+                  <div class="ph-sub">NASA APOD 每日精选</div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="cg-label">图片分类</div>
+                <div class="cat-list" id="apod-cat-list"></div>
+              </div>
+
+              <button class="btn btn-secondary full" id="btn-fetch-history">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9 9 0 00-7 3.5"/><path d="M3 3v4h4"/></svg>
+                获取历史图片
+              </button>
+            </div>
+
+            <div class="preview-area">
+              <div class="preview-container">
+                <div class="preview-placeholder preview-apod" id="apod-placeholder"></div>
+                <img class="preview-img" id="apod-img" alt="" />
+                <div class="preview-overlay">
+                  <div class="po-left">
+                    <div class="po-title" id="apod-title"></div>
+                    <div class="po-meta" id="apod-meta"></div>
+                  </div>
+                  <div class="po-res" id="apod-res"></div>
+                </div>
+                <div class="preview-watermark">RealEarth · APOD</div>
+                <div class="preview-loading" id="apod-loading">
+                  <div class="spinner"></div>
+                  <div class="loading-text">加载中…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <div class="pagination">
+              <button class="page-btn" id="apod-prev">&#8249;</button>
+              <span class="page-info" id="apod-page">0 / 0</span>
+              <button class="page-btn" id="apod-next">&#8250;</button>
+            </div>
+            <button class="btn btn-success" id="apod-update">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9 9 9 0 00-7 3.5"/><path d="M3 3v4h4"/></svg>
+              更新
+            </button>
+            <button class="btn btn-primary push-right" id="apod-set">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+              设为壁纸
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== 卫星面板 ========== -->
+        <section class="panel" data-source="satellite">
+          <div class="panel-main">
+            <div class="control-panel">
+              <div class="panel-header">
+                <div class="ph-icon" style="background:var(--sat-glow)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13c0 5 3 8 7 8s7-3 7-8-3-8-7-8-7 3-7 8z"/><path d="M12 13l4-2"/><circle cx="12" cy="13" r="1.5"/></svg>
+                </div>
+                <div class="ph-text">
+                  <div class="ph-title">卫星影像</div>
+                  <div class="ph-sub">地球静止卫星实时图</div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="cg-label">选择卫星</div>
+                <div class="dropdown" id="sat-dropdown">
+                  <div class="dropdown-trigger" id="sat-trigger">
+                    <span id="sat-trigger-label">Himawari-8</span>
+                    <svg class="dd-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                  <div class="dropdown-menu" id="sat-menu"></div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="cg-label">颜色模式</div>
+                <div class="segmented" id="sat-color-seg">
+                  <div class="seg-item active" data-val="natural_color">自然色</div>
+                  <div class="seg-item" data-val="enhanced_color">地球色</div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="cg-label">分辨率</div>
+                <div class="segmented" id="sat-size-seg">
+                  <div class="seg-item" data-val="540">标准</div>
+                  <div class="seg-item active" data-val="1080">高清</div>
+                  <div class="seg-item" data-val="2200">超清</div>
+                </div>
+              </div>
+
+              <div class="info-card" id="sat-info-card">
+                <div class="info-row"><span>卫星</span><span id="sat-info-name">—</span></div>
+                <div class="info-row"><span>机构</span><span id="sat-info-agency">—</span></div>
+                <div class="info-row"><span>覆盖区域</span><span id="sat-info-region">—</span></div>
+                <div class="info-row"><span>更新频率</span><span>约每 10 分钟</span></div>
+                <div class="info-row"><span>颜色模式</span><span id="sat-info-color">自然色</span></div>
+              </div>
+            </div>
+
+            <div class="preview-area">
+              <div class="preview-container">
+                <div class="preview-placeholder preview-sat" id="sat-placeholder"></div>
+                <img class="preview-img" id="sat-img" alt="" />
+                <div class="preview-overlay">
+                  <div class="po-left">
+                    <div class="po-title" id="sat-title"></div>
+                    <div class="po-meta" id="sat-meta"></div>
+                  </div>
+                  <div class="po-res" id="sat-res"></div>
+                </div>
+                <div class="preview-watermark">RealEarth · SATELLITE</div>
+                <div class="preview-loading" id="sat-loading">
+                  <div class="spinner"></div>
+                  <div class="loading-text">获取卫星影像…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="btn btn-accent" id="sat-fetch">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v5h-5"/></svg>
+              获取最新影像
+            </button>
+            <div class="countdown" id="sat-countdown">
+              <span class="cd-dot" id="sat-dot"></span>
+              <span class="cd-time" id="sat-cd-time"></span>
+              <button class="btn btn-toggle" id="sat-auto">自动刷新: 关</button>
+            </div>
+            <button class="btn btn-primary push-right" id="sat-set">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+              设为壁纸
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== SDO 面板 ========== -->
+        <section class="panel" data-source="sdo">
+          <div class="panel-main">
+            <div class="control-panel">
+              <div class="panel-header">
+                <div class="ph-icon" style="background:var(--sdo-glow)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+                </div>
+                <div class="ph-text">
+                  <div class="ph-title">太阳观测</div>
+                  <div class="ph-sub">NASA SDO 太阳动力学天文台</div>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="cg-label">观测波段</div>
+                <div class="band-list" id="sdo-band-list"></div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-row"><span>数据源</span><span>NASA SDO</span></div>
+                <div class="info-row"><span>更新频率</span><span>15 - 60 分钟</span></div>
+                <div class="info-row"><span>自动刷新</span><span>每 60 分钟</span></div>
+              </div>
+            </div>
+
+            <div class="preview-area">
+              <div class="preview-container">
+                <div class="preview-placeholder preview-sdo" id="sdo-placeholder"></div>
+                <img class="preview-img" id="sdo-img" alt="" />
+                <div class="preview-overlay">
+                  <div class="po-left">
+                    <div class="po-title" id="sdo-title"></div>
+                    <div class="po-meta" id="sdo-meta"></div>
+                  </div>
+                  <div class="po-res" id="sdo-res"></div>
+                </div>
+                <div class="preview-watermark">RealEarth · SDO</div>
+                <div class="preview-loading" id="sdo-loading">
+                  <div class="spinner"></div>
+                  <div class="loading-text">获取太阳图像…</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-bar">
+            <button class="btn btn-accent" id="sdo-fetch">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v5h-5"/></svg>
+              获取最新太阳图
+            </button>
+            <div class="countdown" id="sdo-countdown">
+              <span class="cd-dot" id="sdo-dot"></span>
+              <span class="cd-time" id="sdo-cd-time"></span>
+              <button class="btn btn-toggle" id="sdo-auto">自动刷新: 关</button>
+            </div>
+            <button class="btn btn-primary push-right" id="sdo-set">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+              设为壁纸
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- ===================== 状态栏 ===================== -->
+    <div class="status-bar">
+      <span class="st-mode" id="st-mode">天文图片模式 · NASA APOD 每日精选</span>
+      <span class="st-divider"></span>
+      <span class="st-cache" id="st-cache">缓存: 0 张</span>
+      <span class="st-divider"></span>
+      <span class="st-disk" id="st-disk">磁盘占用: 0 MB</span>
+      <span class="st-right">
+        <span class="st-scheduler"><span class="st-dot" id="st-dot"></span>调度器运行中</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- ===================== 设置模态框 ===================== -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title"><span class="modal-ico">&#9881;</span> 设置</div>
+        <button class="modal-close" data-close>&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>NASA API Key</label>
+          <input type="text" class="text-input" id="set-apikey" />
+          <div class="form-hint">默认使用 DEMO_KEY（每小时限流 30 次），建议申请免费 Key</div>
+        </div>
+        <div class="form-row">
+          <label>壁纸样式</label>
+          <div class="segmented" id="set-style-seg">
+            <div class="seg-item" data-val="center">居中</div>
+            <div class="seg-item" data-val="tile">平铺</div>
+            <div class="seg-item" data-val="stretch">拉伸</div>
+            <div class="seg-item" data-val="fit">适应</div>
+            <div class="seg-item" data-val="fill">填充</div>
+          </div>
+        </div>
+        <div class="form-row toggle-row">
+          <label>自动更新壁纸</label>
+          <div class="switch" id="set-auto-update" data-on="true"><span class="switch-knob"></span></div>
+        </div>
+        <div class="form-row toggle-row">
+          <label>优先下载高清图片 (NASA APOD)</label>
+          <div class="switch" id="set-hd" data-on="true"><span class="switch-knob"></span></div>
+        </div>
+        <div class="form-row toggle-row">
+          <label>开机自启动</label>
+          <div class="switch" id="set-auto-start" data-on="false"><span class="switch-knob"></span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="set-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 使用说明模态框 ===================== -->
+  <div class="modal-overlay" id="help-modal">
+    <div class="modal help-modal">
+      <div class="modal-header">
+        <div class="modal-title"><span class="modal-ico">&#128214;</span> 使用说明</div>
+        <button class="modal-close" data-close>&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-section" style="--hc:#9D7FFF">
+          <div class="help-title">🔭 天文图片 — NASA APOD</div>
+          <div class="help-text">• 首次启动自动获取近 10 天图片<br>• 左侧选择分类浏览：星云、星系、行星等<br>• 点击图片设为壁纸，支持导航浏览<br>• 每天在设定时间自动更新</div>
+        </div>
+        <div class="help-section" style="--hc:#33C9E8">
+          <div class="help-title">🛰 卫星影像 — 多卫星实时影像</div>
+          <div class="help-text">• 支持 6 颗地球静止卫星（Himawari-8 / GOES / GK2A / Meteosat）<br>• 颜色模式：自然色 / 地球色<br>• 分辨率：标准 / 高清 / 超清<br>• 开启自动刷新，每 10 分钟自动更新</div>
+        </div>
+        <div class="help-section" style="--hc:#FFAA33">
+          <div class="help-title">☀ 太阳观测 — NASA SDO</div>
+          <div class="help-text">• 多个观测波段（304 Å 色球层 / 171 Å 日冕 / 连续光球 / 磁场线）<br>• 数据来源：NASA 太阳动力学天文台<br>• 约每 15-60 分钟更新一张</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close>知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 关闭对话框 ===================== -->
+  <div class="modal-overlay" id="close-modal">
+    <div class="modal close-modal">
+      <div class="close-icon">🌍</div>
+      <div class="close-title">RealEarth</div>
+      <div class="close-sub">请选择关闭方式</div>
+      <div class="close-btns">
+        <button class="btn btn-secondary full" id="close-min">— 最小化到任务栏 —</button>
+        <button class="btn btn-primary full" id="close-quit">✕ 退出程序</button>
+      </div>
+      <div class="close-hint">最小化后后台将持续更新 | 从任务栏点击恢复窗口</div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
