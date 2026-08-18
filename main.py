@@ -74,25 +74,33 @@ INFO = "#3B82F6"
 # 主行动按钮 CTA
 CTA = "#E94560"; CTA_HOVER = "#FF6B81"; CTA_GLOW = "#3D1518"  # was #E9456040
 
-# 字体
-FONT_SANS = ("Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Arial")
+# 字体 (严格对齐设计规范 v5.0 字体系统 2.2)
+# 保留完整回退链: Tk 会以首个可用家族渲染, 中文自动回退到 Microsoft YaHei UI
+FONT_SANS = ("Segoe UI Variable", "Segoe UI", "Microsoft YaHei UI", "Microsoft YaHei")
 FONT_MONO = ("Cascadia Code", "JetBrains Mono", "Consolas", "Courier New")
 
 
 def F(size, weight="normal"):
-    return (FONT_SANS[0], size, weight)
+    """规范字体栈: 返回完整家族回退元组 (Tk 支持家族列表作为 family)"""
+    return (FONT_SANS, size, weight)
 
 
-FONT_BRAND = F(16, "bold")
-FONT_SUBTITLE = F(10)
-FONT_PANEL_TITLE = F(14, "bold")
-FONT_MODAL_TITLE = F(15, "bold")
-FONT_BODY = F(13)
-FONT_SECONDARY = F(12)
-FONT_LABEL = F(11)
-FONT_SMALL = F(11)
-FONT_TINY = F(10)
-FONT_TINY_BOLD = F(10, "bold")
+def FM(size, weight="normal"):
+    """等宽字体栈 (时间码 / 分辨率 / API Key), 规范 2.2 --font-mono"""
+    return (FONT_MONO, size, weight)
+
+
+# 字号阶梯 (规范 2.2) — Tk 仅支持 normal/bold 两级, 故 500≈normal, 600/700≈bold
+FONT_BRAND = F(16, "bold")          # 品牌名称 16/700
+FONT_SUBTITLE = F(10, "normal")     # 品牌子标题 10/400
+FONT_PANEL_TITLE = F(14, "bold")    # 面板标题 14/700
+FONT_MODAL_TITLE = F(15, "bold")    # 模态框标题 15/700
+FONT_BODY = F(13, "normal")         # 正文/导航 13/500
+FONT_SECONDARY = F(12, "normal")    # 标签/描述 12/400-600
+FONT_LABEL = F(11, "normal")        # 标签 11/400-600
+FONT_SMALL = F(11, "normal")        # 辅助说明 11/400
+FONT_TINY = F(10, "normal")         # 小标签 10/600
+FONT_TINY_BOLD = F(10, "bold")      # 计数/分节标题 10/600
 
 # 兼容旧业务逻辑使用的别名
 ACCENT = CTA
@@ -130,8 +138,8 @@ def _round_rect(c, x1, y1, x2, y2, r, **kw):
 # 现代按钮 (Canvas 圆角按钮)
 # =====================================================================
 class ModernButton(tk.Canvas):
-    def __init__(self, parent, text, command=None, width=100, height=32,
-                 bg=CTA, fg="white", hover_bg=CTA_HOVER, font=FONT_BODY,
+    def __init__(self, parent, text, command=None, width=100, height=34,
+                 bg=CTA, fg="white", hover_bg=CTA_HOVER, font=F(12, "bold"),
                  glow=None, **kw):
         super().__init__(parent, width=width, height=height, bg=BG_CARD,
                          highlightthickness=0, cursor="hand2", **kw)
@@ -181,7 +189,7 @@ class ModernButton(tk.Canvas):
 # =====================================================================
 class SegmentedControl(tk.Canvas):
     def __init__(self, parent, options, variable, accent=APOD_PRIMARY,
-                 command=None, height=30, font=FONT_SECONDARY):
+                 command=None, height=30, font=F(11, "normal")):
         self._opts = options
         self._var = variable
         self._accent = accent
@@ -266,7 +274,7 @@ class ToggleSwitch(tk.Canvas):
         track = SUCCESS if on else BG_INPUT
         _round_rect(self, 0, 0, self._w, self._h, r,
                     fill=track, outline=BORDER_DEFAULT if not on else "")
-        knob = self._h - 4
+        knob = self._h - 6
         kx = 2 if not on else (self._w - knob - 2)
         ky = 2
         self.create_oval(kx, ky, kx + knob, ky + knob, fill="white", outline="")
@@ -373,11 +381,11 @@ class Dropdown(tk.Frame):
         self._accent = accent
         self._open = False
         self._pop = None
-        self._btn = tk.Label(self, bg=BG_INPUT, fg=TEXT_PRIMARY, font=FONT_BODY,
+        self._btn = tk.Label(self, bg=BG_INPUT, fg=TEXT_PRIMARY, font=F(12, "normal"),
                              anchor="w", padx=10, cursor="hand2")
         self._btn.pack(side="left", fill="both", expand=True)
         self._arrow = tk.Label(self, text="▾", bg=BG_INPUT, fg=TEXT_TERTIARY,
-                               font=FONT_BODY, padx=8, cursor="hand2")
+                               font=F(12, "normal"), padx=8, cursor="hand2")
         self._arrow.pack(side="right")
         for w in (self, self._btn, self._arrow):
             w.bind("<Button-1>", self._toggle)
@@ -413,7 +421,7 @@ class Dropdown(tk.Frame):
                            font=FONT_TINY, width=2)
             dot.pack(side="left", padx=(10, 6))
             lbl = tk.Label(row, text=name, bg=BG_ELEVATED, fg=TEXT_SECONDARY,
-                           font=FONT_BODY, anchor="w")
+                           font=F(12, "normal"), anchor="w")
             lbl.pack(side="left", fill="x", expand=True, pady=7)
             row.bind("<Enter>", lambda e, r=row: r.config(bg=BG_CARD_HOVER))
             row.bind("<Leave>", lambda e, r=row: r.config(bg=BG_ELEVATED))
@@ -587,18 +595,26 @@ class NASAApp:
         self._title_controls = []
 
         def make_btn(sym, cmd, hover):
-            b = tk.Label(ctrl, text=sym, bg=BG_SIDEBAR, fg=TEXT_SECONDARY,
-                         font=("Segoe UI", 10), width=4, cursor="hand2")
-            b.pack(side="right", padx=0)
-            b.bind("<Enter>", lambda e, w=b, h=hover: w.config(bg=h, fg="white"))
-            b.bind("<Leave>", lambda e, w=b: w.config(bg=BG_SIDEBAR, fg=TEXT_SECONDARY))
+            b = tk.Canvas(ctrl, width=46, height=36, bg=BG_SIDEBAR,
+                          highlightthickness=0, bd=0, cursor="hand2")
+            txt = b.create_text(23, 18, text=sym, fill=TEXT_SECONDARY,
+                                font=F(11, "normal"))
+            b.pack(side="right")
+            def enter(e):
+                b.config(bg=hover)
+                b.itemconfig(txt, fill="white")
+            def leave(e):
+                b.config(bg=BG_SIDEBAR)
+                b.itemconfig(txt, fill=TEXT_SECONDARY)
+            b.bind("<Enter>", enter)
+            b.bind("<Leave>", leave)
             b.bind("<Button-1>", lambda e: cmd())
             self._title_controls.append(b)
             return b
 
         make_btn("✕", self._on_close, "#E8453C")
-        make_btn("▢", self._toggle_maximize, "#1E2740")
-        make_btn("—", self.root.iconify, "#1E2740")
+        make_btn("▢", self._toggle_maximize, "#141A2E")
+        make_btn("—", self.root.iconify, "#141A2E")
 
         # 拖拽
         tb.bind("<Button-1>", self._on_title_drag_start)
@@ -768,19 +784,19 @@ class NASAApp:
         prev_label.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         # 底部信息条
-        overlay = tk.Frame(prev_container, bg="#0B0F1A")
+        overlay = tk.Frame(prev_container, bg="#0A0E16")
         overlay.place(relx=0, rely=1, relwidth=1, height=58, anchor="sw")
-        otitle = tk.Label(overlay, text="", bg="#0B0F1A", fg="white",
+        otitle = tk.Label(overlay, text="", bg="#0A0E16", fg="white",
                           font=F(13, "bold"), anchor="w", padx=16)
         otitle.pack(fill="x", padx=0, pady=(6, 0))
-        ometa = tk.Label(overlay, text="", bg="#0B0F1A",
+        ometa = tk.Label(overlay, text="", bg="#0A0E16",
                          fg="#A8B0C8", font=FONT_SMALL, anchor="w", padx=16)
         ometa.pack(fill="x")
 
         # 水印
         watermark = tk.Label(prev_container, text=f"RealEarth · {source.upper()}",
                              bg=BG_CARD, fg="#A8B0C8",
-                             font=(FONT_MONO[0], 10))
+                             font=FM(10))
         watermark.place(relx=1.0, rely=0.0, x=-16, y=12, anchor="ne")
 
         # 加载遮罩
@@ -855,25 +871,25 @@ class NASAApp:
         nav = tk.Frame(a, bg=BG_APP)
         nav.pack(side="left")
         self.btn_prev = ModernButton(nav, text="◀", command=self._prev_image,
-                                     width=36, height=32, bg=BG_ELEVATED,
+                                     width=36, height=34, bg=BG_ELEVATED,
                                      hover_bg=BG_CARD_HOVER, fg=TEXT_SECONDARY)
         self.btn_prev.pack(side="left", padx=2)
         self.page_label = tk.Label(nav, text="0 / 0", bg=BG_APP, fg=TEXT_PRIMARY,
                                    font=FONT_BODY, width=10, anchor="center")
         self.page_label.pack(side="left", padx=8)
         self.btn_next = ModernButton(nav, text="▶", command=self._next_image,
-                                     width=36, height=32, bg=BG_ELEVATED,
+                                     width=36, height=34, bg=BG_ELEVATED,
                                      hover_bg=BG_CARD_HOVER, fg=TEXT_SECONDARY)
         self.btn_next.pack(side="left", padx=2)
 
         rc = tk.Frame(a, bg=BG_APP)
         rc.pack(side="right")
         self.btn_update = ModernButton(rc, text="🔄 更新", command=self._update_now,
-                                       width=84, height=32, bg=SUCCESS, hover_bg="#6EE7C5",
+                                       width=84, height=34, bg=SUCCESS, hover_bg="#6EE7C5",
                                        fg="#0A1A14", glow=SUCCESS_BG)
         self.btn_update.pack(side="left", padx=2)
         self.btn_wallpaper = ModernButton(rc, text="🖼 设为壁纸", command=self._set_wallpaper,
-                                          width=104, height=32, bg=CTA, hover_bg=CTA_HOVER,
+                                          width=104, height=34, bg=CTA, hover_bg=CTA_HOVER,
                                           glow=CTA_GLOW)
         self.btn_wallpaper.pack(side="left", padx=2)
 
@@ -929,14 +945,14 @@ class NASAApp:
         a = s["action"]
         self.btn_sat_fetch = ModernButton(a, text="📡 获取最新影像",
                                           command=self._fetch_satellite,
-                                          width=130, height=32, bg=SAT_PRIMARY,
+                                          width=130, height=34, bg=SAT_PRIMARY,
                                           hover_bg=SAT_LIGHT, glow=SAT_GLOW)
         self.btn_sat_fetch.pack(side="left", padx=(16, 2))
 
         self.btn_sat_auto = ModernButton(a,
                                          text="🔄 自动刷新: 开" if self.sat_auto_refresh else "🔄 自动刷新: 关",
                                          command=self._toggle_sat_auto_refresh,
-                                         width=124, height=32,
+                                         width=124, height=34,
                                          bg=SUCCESS if self.sat_auto_refresh else ACCENT2,
                                          hover_bg="#6EE7C5" if self.sat_auto_refresh else "#1A4A7A",
                                          glow=SUCCESS_BG if self.sat_auto_refresh else None)
@@ -950,7 +966,7 @@ class NASAApp:
         right_sc.pack(side="right", padx=(0, 16))
         self.btn_sat_wp = ModernButton(right_sc, text="🖼 设为壁纸",
                                        command=self._set_sat_wallpaper,
-                                       width=104, height=32, bg=CTA, hover_bg=CTA_HOVER,
+                                       width=104, height=34, bg=CTA, hover_bg=CTA_HOVER,
                                        glow=CTA_GLOW)
         self.btn_sat_wp.pack(side="left", padx=2)
 
@@ -981,7 +997,7 @@ class NASAApp:
                            font=FONT_SMALL, anchor="w")
             lbl.pack(side="left", fill="x", expand=True)
             wtag = tk.Label(row, text=wl, bg="#3A2A10", fg=SDO_LIGHT,
-                            font=(FONT_MONO[0], 9), padx=5, pady=1)
+                            font=FM(9), padx=5, pady=1)
             wtag.pack(side="right", padx=(4, 2))
             for w in (row, dot, lbl, wtag):
                 w.bind("<Enter>", lambda e, r=row: r.config(bg=BG_CARD_HOVER))
@@ -1007,14 +1023,14 @@ class NASAApp:
         a = s["action"]
         self.btn_sdo_fetch = ModernButton(a, text="📡 获取最新太阳图",
                                           command=self._fetch_sdo,
-                                          width=130, height=32, bg=SDO_PRIMARY,
+                                          width=130, height=34, bg=SDO_PRIMARY,
                                           hover_bg=SDO_LIGHT, glow=SDO_GLOW)
         self.btn_sdo_fetch.pack(side="left", padx=(16, 2))
 
         self.btn_sdo_auto = ModernButton(a,
                                          text="🔄 自动刷新: 开" if self.sdo_auto_refresh else "🔄 自动刷新: 关",
                                          command=self._toggle_sdo_auto_refresh,
-                                         width=124, height=32,
+                                         width=124, height=34,
                                          bg=SUCCESS if self.sdo_auto_refresh else ACCENT2,
                                          hover_bg="#6EE7C5" if self.sdo_auto_refresh else "#1A4A7A",
                                          glow=SUCCESS_BG if self.sdo_auto_refresh else None)
@@ -1028,7 +1044,7 @@ class NASAApp:
         right_sdo.pack(side="right", padx=(0, 16))
         self.btn_sdo_wp = ModernButton(right_sdo, text="🖼 设为壁纸",
                                        command=self._set_sdo_wallpaper,
-                                       width=104, height=32, bg=CTA, hover_bg=CTA_HOVER,
+                                       width=104, height=34, bg=CTA, hover_bg=CTA_HOVER,
                                        glow=CTA_GLOW)
         self.btn_sdo_wp.pack(side="left", padx=2)
 
@@ -1659,10 +1675,12 @@ class NASAApp:
         tk.Label(f1, text="NASA API Key", bg=BG_APP, fg=TEXT_SECONDARY,
                  font=FONT_LABEL).pack(anchor="w")
         api_entry = tk.Entry(f1, bg=BG_INPUT, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY,
-                             font=(FONT_MONO[0], 12), relief="flat",
+                             font=FM(12), relief="flat",
                              highlightbackground=BORDER_DEFAULT, highlightthickness=1)
         api_entry.pack(fill="x", pady=4, ipady=5)
         api_entry.insert(0, self.config.get("api_key", DEFAULT_API_KEY))
+        api_entry.bind("<FocusIn>", lambda e: api_entry.config(highlightbackground=APOD_PRIMARY))
+        api_entry.bind("<FocusOut>", lambda e: api_entry.config(highlightbackground=BORDER_DEFAULT))
         tk.Label(f1, text="默认使用 DEMO_KEY（每小时限流 30 次），建议申请免费 Key",
                  bg=BG_APP, fg=TEXT_TERTIARY, font=FONT_TINY).pack(anchor="w")
 
@@ -1849,7 +1867,7 @@ class NASAApp:
                  font=FONT_BODY).pack(pady=(0, 14))
 
         btn_frame = tk.Frame(dialog, bg=BG_SURFACE)
-        btn_frame.pack(pady=4)
+        btn_frame.pack(fill="x", padx=20, pady=(4, 0))
 
         def do_minimize():
             dialog.destroy()
@@ -1863,13 +1881,13 @@ class NASAApp:
 
         ModernButton(btn_frame, text="— 最小化到任务栏 —",
                      command=do_minimize,
-                     width=150, height=38, bg=BLUE, hover_bg=BLUE_HOVER,
-                     font=FONT_BODY).pack(side="left", padx=8)
+                     width=340, height=38, bg=BLUE, hover_bg=BLUE_HOVER).pack(
+                         fill="x", pady=4)
 
         ModernButton(btn_frame, text="✕ 退出程序",
                      command=do_quit,
-                     width=120, height=38, bg=CTA, hover_bg=CTA_HOVER,
-                     glow=CTA_GLOW, font=FONT_BODY).pack(side="left", padx=8)
+                     width=340, height=38, bg=CTA, hover_bg=CTA_HOVER,
+                     glow=CTA_GLOW).pack(fill="x", pady=4)
 
         tk.Label(dialog, text="最小化后后台将持续更新 | 从任务栏点击恢复窗口",
                  bg=BG_SURFACE, fg=TEXT_TERTIARY, font=FONT_SMALL).pack(pady=(10, 0))
