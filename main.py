@@ -1,11 +1,14 @@
 """Live Earth Wallpaper - 多数据源卫星壁纸软件
 UI 美化版本 — "Cosmic Observatory" 深空暗色设计系统 v5.0
+基于 CustomTkinter 重构界面层 (保留全部后端逻辑)
 """
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
+import customtkinter as ctk
 import threading
 import logging
 import math
+import random
 from datetime import datetime, timedelta
 from pathlib import Path
 from PIL import Image, ImageTk
@@ -26,6 +29,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+ctk.set_appearance_mode("dark")
 
 # =====================================================================
 # 设计令牌 (Design Tokens) — "Cosmic Observatory" v5.0
@@ -50,7 +55,7 @@ TEXT_DISABLED = "#3D4459"
 
 # 边框 (rgba via 8-digit hex, Tk 8.6+)
 BORDER_SUBTLE = "#1E2740"   # was #FFFFFF10, Tk on Windows rejects 8-digit hex
-BORDER_DEFAULT = "#2C3A5A"   # was #FFFFFF1A
+BORDER_DEFAULT = "#2C3A5A"  # was #FFFFFF1A
 BORDER_STRONG = "#3D4459"    # was #FFFFFF29
 
 # 数据源强调色 (Data Source Accents)
@@ -122,48 +127,24 @@ APP_VERSION = "v2.0.1"
 
 
 # =====================================================================
-# 通用绘图工具
+# 现代按钮 (基于 CTkButton, 保留旧接口的 restyle/set_text/_draw)
 # =====================================================================
-def _round_rect(c, x1, y1, x2, y2, r, **kw):
-    """在画布上绘制圆角矩形 (tkinter 无原生圆角)"""
-    pts = [
-        x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r,
-        x2, y2 - r, x2, y2, x2 - r, y2, x1 + r, y2,
-        x1, y2, x1, y2 - r, x1, y1 + r, x1, y1,
-    ]
-    return c.create_polygon(pts, smooth=True, **kw)
-
-
-# =====================================================================
-# 现代按钮 (Canvas 圆角按钮)
-# =====================================================================
-class ModernButton(tk.Canvas):
+class ModernButton(ctk.CTkButton):
     def __init__(self, parent, text, command=None, width=100, height=34,
                  bg=CTA, fg="white", hover_bg=CTA_HOVER, font=F(12, "bold"),
                  glow=None, **kw):
-        super().__init__(parent, width=width, height=height, bg=BG_CARD,
-                         highlightthickness=0, cursor="hand2", **kw)
+        super().__init__(parent, text=text, command=command, width=width, height=height,
+                         fg_color=bg, hover_color=hover_bg, text_color=fg,
+                         corner_radius=8, font=font, **kw)
         self._text = text
         self._command = command
         self._bg = bg
         self._fg = fg
         self._hover_bg = hover_bg
-        self._font = font
         self._glow = glow
-        self._radius = 6
-        self._draw(self._bg)
-        self.bind("<Enter>", lambda e: self._draw(self._hover_bg))
-        self.bind("<Leave>", lambda e: self._draw(self._bg))
-        self.bind("<Button-1>", self._on_click)
 
-    def _draw(self, color):
-        self.delete("all")
-        w, h = self.winfo_reqwidth(), self.winfo_reqheight()
-        if self._glow and color == self._hover_bg:
-            _round_rect(self, 0, 2, w, h + 2, self._radius,
-                        fill=self._glow, outline="")
-        _round_rect(self, 0, 0, w, h, self._radius, fill=color, outline="")
-        self.create_text(w // 2, h // 2, text=self._text, fill=self._fg, font=self._font)
+    def _paint(self, color):
+        self.configure(fg_color=color, text_color=self._fg, text=self._text)
 
     def _on_click(self, event):
         if self._command:
@@ -171,139 +152,94 @@ class ModernButton(tk.Canvas):
 
     def set_text(self, text):
         self._text = text
-        self._draw(self._bg)
+        self.configure(text=text)
 
     def restyle(self, bg, hover_bg, fg="white", redraw=True):
         self._bg = bg
         self._hover_bg = hover_bg
         self._fg = fg
         if redraw:
-            self._draw(bg)
+            self._paint(bg)
 
     def current_bg(self):
         return self._bg
 
 
 # =====================================================================
-# 分段控件 (Segmented Control)
+# 分段控件 (基于 CTkButton 行, 支持 key/label 映射 + 强调色)
 # =====================================================================
-class SegmentedControl(tk.Canvas):
+class SegmentedControl(ctk.CTkFrame):
     def __init__(self, parent, options, variable, accent=APOD_PRIMARY,
-                 command=None, height=30, font=F(11, "normal")):
+                 command=None, height=30, font=FONT_LABEL):
+        super().__init__(parent, fg_color="transparent")
         self._opts = options
         self._var = variable
         self._accent = accent
         self._command = command
         self._font = font
-        self._h = height
-        pad = 6
-        self._seg_w = {}
-        total = 6
-        for val, lab in options:
-            w = int(len(lab) * 7) + pad * 2 + 4
-            self._seg_w[val] = w
-            total += w
-        self._total_w = total
-        super().__init__(parent, width=total, height=height,
-                         bg=BG_INPUT, highlightthickness=0, bd=0)
-        self.bind("<Button-1>", self._on_click)
-        self.bind("<Configure>", lambda e: self._draw())
-        self._draw()
+        self._btns = {}
+        for key, lab in options:
+            b = ctk.CTkButton(self, text=lab, height=height, corner_radius=6,
+                              fg_color="transparent", hover_color=BG_CARD_HOVER,
+                              text_color=TEXT_TERTIARY, font=font,
+                              command=lambda k=key: self._select(k))
+            b.pack(side="left", fill="both", expand=True, padx=2)
+            self._btns[key] = b
+        self._redraw()
 
-    def _draw(self):
-        self.delete("all")
-        W = self.winfo_width() or self._total_w
-        _round_rect(self, 0, 0, W, self._h, 6, fill=BG_INPUT, outline="")
-        n = len(self._opts)
-        if n == 0:
-            return
-        seg_w = (W - 6) / n
-        x = 3
-        for val, lab in self._opts:
-            sel = (self._var.get() == val)
-            if sel:
-                _round_rect(self, x, 3, x + seg_w, self._h - 3, 4, fill=self._accent, outline="")
-            col = "white" if sel else TEXT_TERTIARY
-            self.create_text(x + seg_w / 2, self._h / 2, text=lab, fill=col,
-                             font=self._font, anchor="center")
-            x += seg_w
+    def _redraw(self):
+        for key, b in self._btns.items():
+            if self._var.get() == key:
+                b.configure(fg_color=self._accent, text_color="white", hover_color=self._accent)
+            else:
+                b.configure(fg_color="transparent", text_color=TEXT_TERTIARY,
+                            hover_color=BG_CARD_HOVER)
 
-    def _on_click(self, e):
-        W = self.winfo_width() or self._total_w
-        n = len(self._opts)
-        if n == 0:
-            return
-        seg_w = (W - 6) / n
-        idx = int((e.x - 3) / seg_w)
-        if 0 <= idx < n:
-            val = self._opts[idx][0]
-            if self._var.get() != val:
-                self._var.set(val)
-                self._draw()
-                if self._command:
-                    self._command(val)
+    def _select(self, key):
+        self._var.set(key)
+        self._redraw()
+        if self._command:
+            self._command(key)
 
     def set_accent(self, color):
         self._accent = color
-        self._draw()
+        self._redraw()
 
     def set_value(self, val):
         self._var.set(val)
-        self._draw()
+        self._redraw()
 
 
 # =====================================================================
-# 开关 (Toggle Switch)
+# 开关 (基于 CTkSwitch)
 # =====================================================================
-class ToggleSwitch(tk.Canvas):
+class ToggleSwitch(ctk.CTkSwitch):
     def __init__(self, parent, variable=None, command=None, width=36, height=20):
-        super().__init__(parent, width=width, height=height,
-                         bg=BG_APP, highlightthickness=0, bd=0)
         self._var = variable or tk.BooleanVar()
         self._command = command
-        self._w = width
-        self._h = height
-        self.bind("<Button-1>", self._toggle)
-        self._draw()
-
-    def _draw(self, on=None):
-        if on is None:
-            on = self._var.get()
-        self.delete("all")
-        r = self._h / 2
-        track = SUCCESS if on else BG_INPUT
-        _round_rect(self, 0, 0, self._w, self._h, r,
-                    fill=track, outline=BORDER_DEFAULT if not on else "")
-        knob = self._h - 6
-        kx = 2 if not on else (self._w - knob - 2)
-        ky = 2
-        self.create_oval(kx, ky, kx + knob, ky + knob, fill="white", outline="")
-
-    def _toggle(self, e):
-        self._var.set(not self._var.get())
-        self._draw()
-        if self._command:
-            self._command(self._var.get())
+        super().__init__(parent, variable=self._var, command=command,
+                         width=width, height=height,
+                         button_color=TEXT_SECONDARY, progress_color=SUCCESS,
+                         fg_color=BG_INPUT, corner_radius=10)
 
     def set_state(self, v):
         self._var.set(v)
-        self._draw()
 
     def get(self):
         return self._var.get()
 
 
 # =====================================================================
-# 加载遮罩 (Loading Overlay + 旋转 Spinner)
+# 加载遮罩 (CTkFrame + tk.Canvas 旋转 Spinner)
 # =====================================================================
-class LoadingOverlay(tk.Frame):
+class LoadingOverlay(ctk.CTkFrame):
     def __init__(self, parent, accent=APOD_PRIMARY):
-        super().__init__(parent, bg="#080B14")
+        super().__init__(parent, fg_color=BG_APP, corner_radius=0)
         self._accent = accent
-        self._spin = tk.Canvas(self, width=34, height=34, bg="#080B14", highlightthickness=0)
+        self._spin = tk.Canvas(self, width=34, height=34, bg=BG_APP, highlightthickness=0)
         self._spin.pack(expand=True)
-        self._label = tk.Label(self, text="加载中…", bg="#080B14",
-                               fg=TEXT_SECONDARY, font=FONT_SMALL)
+        self._label = ctk.CTkLabel(self, text="加载中…", fg_color="transparent",
+                                   text_color=TEXT_SECONDARY, font=FONT_SMALL)
         self._label.place(relx=0.5, rely=0.64, anchor="center")
         self._angle = 0
         self._running = False
@@ -335,7 +271,7 @@ class LoadingOverlay(tk.Frame):
 
 
 # =====================================================================
-# 脉动指示灯 (Pulse Dot)
+# 脉动指示灯 (tk.Canvas, 保留)
 # =====================================================================
 class PulseDot(tk.Canvas):
     def __init__(self, parent, color=SUCCESS, size=10, bg=BG_APP):
@@ -345,9 +281,9 @@ class PulseDot(tk.Canvas):
         self._size = size
         self._t = 0
         self._on = True
-        self._draw()
+        self._pulse_draw()
 
-    def _draw(self):
+    def _pulse_draw(self):
         if not self.winfo_exists():
             return
         self.delete("all")
@@ -358,7 +294,7 @@ class PulseDot(tk.Canvas):
             self.create_oval(cx - rr, cy - rr, cx + rr, cy + rr,
                              fill=self._color, outline="")
         self._t += 0.18
-        self.after(120, self._draw)
+        self.after(120, self._pulse_draw)
 
     def set_color(self, c):
         self._color = c
@@ -368,89 +304,45 @@ class PulseDot(tk.Canvas):
 
 
 # =====================================================================
-# 自定义下拉菜单 (Dropdown)
+# 自定义下拉菜单 (基于 CTkOptionMenu, key/label 映射)
 # =====================================================================
-class Dropdown(tk.Frame):
+class Dropdown(ctk.CTkOptionMenu):
     def __init__(self, parent, options, variable, on_change=None,
                  width=180, accent=SAT_PRIMARY):
-        super().__init__(parent, bg=BG_INPUT, highlightbackground=BORDER_DEFAULT,
-                         highlightthickness=1)
         self._opts = options
         self._var = variable
         self._on_change = on_change
         self._accent = accent
-        self._open = False
-        self._pop = None
-        self._btn = tk.Label(self, bg=BG_INPUT, fg=TEXT_PRIMARY, font=F(12, "normal"),
-                             anchor="w", padx=10, cursor="hand2")
-        self._btn.pack(side="left", fill="both", expand=True)
-        self._arrow = tk.Label(self, text="▾", bg=BG_INPUT, fg=TEXT_TERTIARY,
-                               font=F(12, "normal"), padx=8, cursor="hand2")
-        self._arrow.pack(side="right")
-        for w in (self, self._btn, self._arrow):
-            w.bind("<Button-1>", self._toggle)
-        self._sync_text()
+        self._keymap = {key: name for key, name in options}
+        self._namemap = {name: key for key, name in options}
+        self._shadow = tk.StringVar()
+        cur = variable.get()
+        self._shadow.set(self._keymap.get(cur, options[0][1]))
+        super().__init__(parent, values=[n for _, n in options], variable=self._shadow,
+                         width=width, command=self._on_select,
+                         button_color=BG_INPUT, button_hover_color=BG_CARD_HOVER,
+                         fg_color=BG_SURFACE, dropdown_fg_color=BG_ELEVATED,
+                         text_color=TEXT_PRIMARY, dropdown_text_color=TEXT_SECONDARY,
+                         dropdown_hover_color=BG_CARD_HOVER, corner_radius=8,
+                         font=FONT_SECONDARY)
 
-    def _sync_text(self):
-        key = self._var.get()
-        name = dict(self._opts).get(key, key)
-        self._btn.config(text=name)
-
-    def _toggle(self, e=None):
-        if self._open:
-            self._close()
-        else:
-            self._open_pop()
-
-    def _open_pop(self):
-        self._open = True
-        self._arrow.config(text="▴")
-        self.config(highlightbackground=self._accent)
-        x = self.winfo_rootx()
-        y = self.winfo_rooty() + self.winfo_height()
-        pop = tk.Toplevel(self)
-        pop.wm_overrideredirect(True)
-        pop.attributes("-topmost", True)
-        pop.geometry(f"+{x}+{y}")
-        pop.config(bg=BG_ELEVATED, highlightbackground=BORDER_DEFAULT, highlightthickness=1)
-        self._pop = pop
-        for key, name in self._opts:
-            row = tk.Frame(pop, bg=BG_ELEVATED)
-            row.pack(fill="x")
-            dot = tk.Label(row, text="●", fg=self._accent, bg=BG_ELEVATED,
-                           font=FONT_TINY, width=2)
-            dot.pack(side="left", padx=(10, 6))
-            lbl = tk.Label(row, text=name, bg=BG_ELEVATED, fg=TEXT_SECONDARY,
-                           font=F(12, "normal"), anchor="w")
-            lbl.pack(side="left", fill="x", expand=True, pady=7)
-            row.bind("<Enter>", lambda e, r=row: r.config(bg=BG_CARD_HOVER))
-            row.bind("<Leave>", lambda e, r=row: r.config(bg=BG_ELEVATED))
-            row.bind("<Button-1>", lambda e, k=key: self._select(k))
-        pop.bind("<FocusOut>", lambda e: self._close())
-        pop.focus_set()
-
-    def _select(self, key):
+    def _on_select(self, name):
+        key = self._namemap.get(name, name)
         self._var.set(key)
-        self._sync_text()
-        self._close()
         if self._on_change:
             self._on_change(key)
 
-    def _close(self):
-        self._open = False
-        self._arrow.config(text="▾")
-        self.config(highlightbackground=BORDER_DEFAULT)
-        if self._pop:
-            self._pop.destroy()
-            self._pop = None
+    def set_value(self, key):
+        self._shadow.set(self._keymap.get(key, self._shadow.get()))
+        self._var.set(key)
 
 
 # =====================================================================
-# 侧边栏导航项 (Nav Item)
+# 侧边栏导航项 (基于 CTkFrame, 圆角 + 激活竖条)
 # =====================================================================
-class NavItem(tk.Frame):
+class NavItem(ctk.CTkFrame):
     def __init__(self, parent, icon, label, badge, badge_bg, accent, command):
-        super().__init__(parent, bg=BG_SIDEBAR, height=40)
+        super().__init__(parent, height=40, fg_color="transparent", corner_radius=6)
         self.pack_propagate(False)
         self._accent = accent
         self._command = command
@@ -458,17 +350,16 @@ class NavItem(tk.Frame):
         self._badge = badge
         self._badge_bg = badge_bg
 
-        self._bar = tk.Canvas(self, width=3, height=40, bg=BG_SIDEBAR,
-                              highlightthickness=0, bd=0)
-        self._bar.pack(side="left")
-        self._icon = tk.Label(self, text=icon, bg=BG_SIDEBAR, fg=TEXT_SECONDARY,
-                              font=F(14))
-        self._icon.pack(side="left", padx=(10, 10))
-        self._label = tk.Label(self, text=label, bg=BG_SIDEBAR, fg=TEXT_SECONDARY,
-                               font=FONT_BODY, anchor="w")
+        self._bar = ctk.CTkFrame(self, width=3, height=24, fg_color="transparent", corner_radius=0)
+        self._bar.pack(side="left", padx=(8, 0))
+        self._icon = ctk.CTkLabel(self, text=icon, text_color=TEXT_SECONDARY, font=F(14))
+        self._icon.pack(side="left", padx=(8, 8))
+        self._label = ctk.CTkLabel(self, text=label, text_color=TEXT_SECONDARY,
+                                   font=FONT_BODY, anchor="w")
         self._label.pack(side="left", fill="x", expand=True)
-        self._badge_lbl = tk.Label(self, text=badge, bg=badge_bg, fg=accent,
-                                   font=FONT_TINY_BOLD, padx=6, pady=1)
+        self._badge_lbl = ctk.CTkLabel(self, text=badge, fg_color=badge_bg,
+                                       text_color=accent, font=FONT_TINY_BOLD,
+                                       corner_radius=6, padx=6, pady=1)
         self._badge_lbl.pack(side="right", padx=(0, 12))
 
         for w in (self, self._icon, self._label, self._badge_lbl):
@@ -477,40 +368,35 @@ class NavItem(tk.Frame):
             w.bind("<Button-1>", lambda e: self._command())
 
     def _set_bg(self, c):
-        self.config(bg=c)
-        self._bar.config(bg=c)
-        self._icon.config(bg=c)
-        self._label.config(bg=c)
-        self._badge_lbl.config(bg=c)
+        self.configure(fg_color=c)
 
     def _hover_on(self, e):
         if not self._active:
-            self._set_bg(BG_SIDEBAR_HOVER)
-            self._icon.config(fg=TEXT_PRIMARY)
-            self._label.config(fg=TEXT_PRIMARY)
+            self.configure(fg_color=BG_SIDEBAR_HOVER)
+            self._icon.configure(text_color=TEXT_PRIMARY)
+            self._label.configure(text_color=TEXT_PRIMARY)
 
     def _leave(self, e):
         if not self._active:
-            self._set_bg(BG_SIDEBAR)
-            self._icon.config(fg=TEXT_SECONDARY)
-            self._label.config(fg=TEXT_SECONDARY)
+            self.configure(fg_color="transparent")
+            self._icon.configure(text_color=TEXT_SECONDARY)
+            self._label.configure(text_color=TEXT_TERTIARY)
 
     def set_active(self, v, accent=None):
         self._active = v
         if accent:
             self._accent = accent
-            self._badge_lbl.config(fg=accent)
+            self._badge_lbl.configure(text_color=accent)
         if v:
-            self._set_bg(BG_SIDEBAR_HOVER)
-            self._icon.config(fg=TEXT_PRIMARY)
-            self._label.config(fg=TEXT_PRIMARY)
-            self._bar.delete("all")
-            self._bar.create_rectangle(0, 8, 3, 32, fill=self._accent, outline="")
+            self.configure(fg_color=BG_SIDEBAR_HOVER)
+            self._icon.configure(text_color=TEXT_PRIMARY)
+            self._label.configure(text_color=TEXT_PRIMARY)
+            self._bar.configure(fg_color=self._accent)
         else:
-            self._set_bg(BG_SIDEBAR)
-            self._icon.config(fg=TEXT_SECONDARY)
-            self._label.config(fg=TEXT_TERTIARY)
-            self._bar.delete("all")
+            self.configure(fg_color="transparent")
+            self._icon.configure(text_color=TEXT_SECONDARY)
+            self._label.configure(text_color=TEXT_TERTIARY)
+            self._bar.configure(fg_color="transparent")
 
 
 # =====================================================================
@@ -521,7 +407,7 @@ class NASAApp:
         self.root = root
         self.root.title("RealEarth - 真实地球壁纸")
         self.root.geometry("1200x780")
-        self.root.configure(bg=BG_APP)
+        self.root.configure(fg_color=BG_APP)
         self.root.minsize(1000, 680)
         self.root.resizable(True, True)
         self.root.overrideredirect(True)
@@ -595,20 +481,11 @@ class NASAApp:
         self._title_controls = []
 
         def make_btn(sym, cmd, hover):
-            b = tk.Canvas(ctrl, width=46, height=36, bg=BG_SIDEBAR,
-                          highlightthickness=0, bd=0, cursor="hand2")
-            txt = b.create_text(23, 18, text=sym, fill=TEXT_SECONDARY,
-                                font=F(11, "normal"))
+            b = ctk.CTkButton(ctrl, text=sym, width=46, height=36,
+                              fg_color="transparent", hover_color=hover,
+                              text_color=TEXT_SECONDARY, corner_radius=0,
+                              font=F(11), command=cmd)
             b.pack(side="right")
-            def enter(e):
-                b.config(bg=hover)
-                b.itemconfig(txt, fill="white")
-            def leave(e):
-                b.config(bg=BG_SIDEBAR)
-                b.itemconfig(txt, fill=TEXT_SECONDARY)
-            b.bind("<Enter>", enter)
-            b.bind("<Leave>", leave)
-            b.bind("<Button-1>", lambda e: cmd())
             self._title_controls.append(b)
             return b
 
@@ -653,11 +530,11 @@ class NASAApp:
     # ========== UI 构建 ==========
     def _build_ui(self):
         # 主区域
-        self.main = tk.Frame(self.root, bg=BG_APP)
+        self.main = ctk.CTkFrame(self.root, fg_color=BG_APP, corner_radius=0)
         self.main.pack(fill="both", expand=True)
 
         self._build_sidebar(self.main)
-        self.content = tk.Frame(self.main, bg=BG_APP)
+        self.content = ctk.CTkFrame(self.main, fg_color=BG_APP, corner_radius=0)
         self.content.pack(side="left", fill="both", expand=True)
 
         self._build_apod_panel()
@@ -676,7 +553,6 @@ class NASAApp:
         stars = tk.Canvas(sb, width=220, height=180, bg=BG_SIDEBAR,
                           highlightthickness=0, bd=0)
         stars.pack(fill="x")
-        import random
         random.seed(7)
         for _ in range(60):
             x = random.randint(0, 219)
@@ -746,23 +622,23 @@ class NASAApp:
     # ========== 面板脚手架 ==========
     def _panel_scaffold(self, source, title, subtitle, icon):
         accent = ACCENTS[source]
-        panel = tk.Frame(self.content, bg=BG_APP)
+        panel = ctk.CTkFrame(self.content, fg_color=BG_APP, corner_radius=0)
 
         # 控制面板
-        ctrl = tk.Frame(panel, bg=BG_SURFACE, width=210)
+        ctrl = ctk.CTkFrame(panel, fg_color=BG_SURFACE, width=210, corner_radius=0)
         ctrl.pack(side="left", fill="y")
         ctrl.pack_propagate(False)
-        inner = tk.Frame(ctrl, bg=BG_SURFACE)
+        inner = ctk.CTkFrame(ctrl, fg_color=BG_SURFACE, corner_radius=0)
         inner.pack(fill="both", expand=True, padx=14, pady=16)
 
-        header = tk.Frame(inner, bg=BG_SURFACE)
+        header = ctk.CTkFrame(inner, fg_color=BG_SURFACE, corner_radius=0)
         header.pack(fill="x", pady=(0, 16))
         ic = tk.Canvas(header, width=22, height=22, bg=BG_SURFACE,
                        highlightthickness=0, bd=0)
         ic.pack(side="left", padx=(0, 8))
         ic.create_oval(1, 1, 21, 21, fill=accent["glow"], outline="")
         ic.create_text(11, 11, text=icon, fill=accent["light"], font=F(12))
-        titles = tk.Frame(header, bg=BG_SURFACE)
+        titles = ctk.CTkFrame(header, fg_color=BG_SURFACE, corner_radius=0)
         titles.pack(side="left", fill="x")
         tk.Label(titles, text=title, bg=BG_SURFACE, fg=TEXT_PRIMARY,
                  font=FONT_PANEL_TITLE).pack(anchor="w")
@@ -770,12 +646,12 @@ class NASAApp:
                  font=FONT_LABEL).pack(anchor="w")
 
         # 预览列
-        prev_col = tk.Frame(panel, bg=BG_APP)
+        prev_col = ctk.CTkFrame(panel, fg_color=BG_APP, corner_radius=0)
         prev_col.pack(side="left", fill="both", expand=True)
 
-        prev_container = tk.Frame(prev_col, bg=BG_CARD,
-                                  highlightbackground=BORDER_DEFAULT,
-                                  highlightthickness=1)
+        prev_container = ctk.CTkFrame(prev_col, fg_color=BG_CARD,
+                                     border_color=BORDER_DEFAULT, border_width=1,
+                                     corner_radius=12)
         prev_container.pack(fill="both", expand=True, padx=16, pady=16)
 
         prev_label = tk.Label(prev_container, bg=BG_CARD, text=PLACEHOLDER[source],
@@ -784,8 +660,8 @@ class NASAApp:
         prev_label.place(relx=0, rely=0, relwidth=1, relheight=1)
 
         # 底部信息条
-        overlay = tk.Frame(prev_container, bg="#0A0E16")
-        overlay.place(relx=0, rely=1, relwidth=1, height=58, anchor="sw")
+        overlay = ctk.CTkFrame(prev_container, fg_color="#0A0E16", corner_radius=8, height=58)
+        overlay.place(relx=0, rely=1, relwidth=1, anchor="sw")
         otitle = tk.Label(overlay, text="", bg="#0A0E16", fg="white",
                           font=F(13, "bold"), anchor="w", padx=16)
         otitle.pack(fill="x", padx=0, pady=(6, 0))
@@ -794,9 +670,9 @@ class NASAApp:
         ometa.pack(fill="x")
 
         # 水印
-        watermark = tk.Label(prev_container, text=f"RealEarth · {source.upper()}",
-                             bg=BG_CARD, fg="#A8B0C8",
-                             font=FM(10))
+        watermark = ctk.CTkLabel(prev_container, text=f"RealEarth · {source.upper()}",
+                                fg_color="transparent", text_color="#A8B0C8",
+                                font=FM(10))
         watermark.place(relx=1.0, rely=0.0, x=-16, y=12, anchor="ne")
 
         # 加载遮罩
@@ -804,7 +680,7 @@ class NASAApp:
         loading.hide()
 
         # 操作栏
-        action = tk.Frame(prev_col, bg=BG_APP, height=44)
+        action = ctk.CTkFrame(prev_col, fg_color=BG_APP, height=44, corner_radius=0)
         action.pack(fill="x", side="bottom")
         action.pack_propagate(False)
 
@@ -830,8 +706,9 @@ class NASAApp:
                      width=182, height=34, bg=APOD_PRIMARY, hover_bg=APOD_LIGHT,
                      glow=APOD_GLOW).pack(side="bottom", fill="x", pady=(12, 0))
 
-        cat_frame = tk.Frame(s["inner"], bg=BG_INPUT,
-                             highlightbackground=BORDER_DEFAULT, highlightthickness=1)
+        cat_frame = ctk.CTkFrame(s["inner"], fg_color=BG_INPUT,
+                                 border_color=BORDER_DEFAULT, border_width=1,
+                                 corner_radius=8)
         cat_frame.pack(side="top", fill="both", expand=True)
 
         cols = ("category", "count")
@@ -927,8 +804,9 @@ class NASAApp:
         self.sat_size_seg.pack(fill="x", pady=(0, 14))
 
         # 卫星信息卡
-        info_card = tk.Frame(s["inner"], bg=BG_CARD,
-                             highlightbackground=BORDER_SUBTLE, highlightthickness=1)
+        info_card = ctk.CTkFrame(s["inner"], fg_color=BG_CARD,
+                                 border_color=BORDER_SUBTLE, border_width=1,
+                                 corner_radius=10)
         info_card.pack(fill="both", expand=True)
         self.sat_info_label = tk.Label(info_card, text="", bg=BG_CARD,
                                         fg=TEXT_TERTIARY, font=FONT_SMALL, justify="left",
@@ -1006,8 +884,9 @@ class NASAApp:
             self.sdo_band_rows[key] = (row, lbl, dot)
 
         # 观测信息卡
-        sdo_info_card = tk.Frame(s["inner"], bg=BG_CARD,
-                                 highlightbackground=BORDER_SUBTLE, highlightthickness=1)
+        sdo_info_card = ctk.CTkFrame(s["inner"], fg_color=BG_CARD,
+                                     border_color=BORDER_SUBTLE, border_width=1,
+                                     corner_radius=10)
         sdo_info_card.pack(fill="both", expand=True)
         tk.Label(sdo_info_card, text="拍摄频率\n约每 15-60 分钟\n自动刷新每 60 分钟",
                  bg=BG_CARD, fg=TEXT_TERTIARY, font=FONT_SMALL, justify="left",
@@ -1073,10 +952,10 @@ class NASAApp:
 
     # ========== 状态栏 ==========
     def _build_status_bar(self):
-        sb = tk.Frame(self.root, bg=BG_SURFACE, height=28)
+        sb = ctk.CTkFrame(self.root, fg_color=BG_SURFACE, height=28,
+                          border_color=BORDER_SUBTLE, border_width=1, corner_radius=0)
         sb.pack(fill="x", side="bottom")
         sb.pack_propagate(False)
-        sb.config(highlightbackground=BORDER_SUBTLE, highlightthickness=1)
 
         left = tk.Frame(sb, bg=BG_SURFACE)
         left.pack(side="left", padx=16)
@@ -1454,7 +1333,7 @@ class NASAApp:
             else:
                 self.root.after(0, lambda: self.sdo_preview.config(
                     text="❌ 获取失败\nNASA SDO 数据暂时不可用", fg=ERROR))
-                self.root.after(0, self.sdo_loading.hide)
+                self.root.after(0, self.sat_loading.hide)
                 self.root.after(0, lambda: self._update_status("❌ 获取失败", color=ERROR))
         except Exception as e:
             logger.error(f"SDO fetch error: {e}")
@@ -1491,7 +1370,7 @@ class NASAApp:
             self.btn_sat_auto._hover_bg = "#6EE7C5"
             self.btn_sat_auto._glow = SUCCESS_BG
             self.btn_sat_auto._text = "🔄 自动刷新: 开"
-            self.btn_sat_auto._draw(SUCCESS)
+            self.btn_sat_auto._paint(SUCCESS)
             self._start_sat_refresh_timer()
             self._update_status("卫星自动刷新已开启", color=GREEN)
         else:
@@ -1499,7 +1378,7 @@ class NASAApp:
             self.btn_sat_auto._hover_bg = "#1A4A7A"
             self.btn_sat_auto._glow = None
             self.btn_sat_auto._text = "🔄 自动刷新: 关"
-            self.btn_sat_auto._draw(ACCENT2)
+            self.btn_sat_auto._paint(ACCENT2)
             self._stop_sat_refresh_timer()
             self._update_status("卫星自动刷新已关闭")
 
@@ -1550,7 +1429,7 @@ class NASAApp:
             self.sat_image_path = path
             self.root.after(0, lambda: self._load_preview(path, self.sat_preview, self.sat_status,
                 f"🛰 {GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)}", "",
-                GEOSTATIONARY_SATELLITES.get(sat, {}).get("name", sat)))
+                GEOSTATIONARY_SATELLITES.get(sat, {}).get('name', sat)))
             if self.data_source == "satellite":
                 style = self.config.get("wallpaper_style", "fill")
                 now = datetime.now()
@@ -1577,7 +1456,7 @@ class NASAApp:
             self.btn_sdo_auto._hover_bg = "#6EE7C5"
             self.btn_sdo_auto._glow = SUCCESS_BG
             self.btn_sdo_auto._text = "🔄 自动刷新: 开"
-            self.btn_sdo_auto._draw(SUCCESS)
+            self.btn_sdo_auto._paint(SUCCESS)
             self._start_sdo_refresh_timer()
             self._update_status("SDO 自动刷新已开启", color=GREEN)
         else:
@@ -1585,7 +1464,7 @@ class NASAApp:
             self.btn_sdo_auto._hover_bg = "#1A4A7A"
             self.btn_sdo_auto._glow = None
             self.btn_sdo_auto._text = "🔄 自动刷新: 关"
-            self.btn_sdo_auto._draw(ACCENT2)
+            self.btn_sdo_auto._paint(ACCENT2)
             self._stop_sdo_refresh_timer()
             self._update_status("SDO 自动刷新已关闭")
 
@@ -1652,10 +1531,10 @@ class NASAApp:
 
     # ========== 设置 ==========
     def _show_settings(self):
-        win = tk.Toplevel(self.root)
+        win = ctk.CTkToplevel(self.root)
         win.title("设置")
         win.geometry("440x500")
-        win.configure(bg=BG_APP)
+        win.configure(fg_color=BG_APP)
         win.resizable(False, False)
         win.transient(self.root)
         win.grab_set()
@@ -1674,13 +1553,13 @@ class NASAApp:
         f1.pack(fill="x", padx=24, pady=(12, 4))
         tk.Label(f1, text="NASA API Key", bg=BG_APP, fg=TEXT_SECONDARY,
                  font=FONT_LABEL).pack(anchor="w")
-        api_entry = tk.Entry(f1, bg=BG_INPUT, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY,
-                             font=FM(12), relief="flat",
-                             highlightbackground=BORDER_DEFAULT, highlightthickness=1)
+        api_entry = ctk.CTkEntry(f1, fg_color=BG_INPUT, text_color=TEXT_PRIMARY,
+                                border_color=BORDER_DEFAULT, corner_radius=8,
+                                font=FM(12))
         api_entry.pack(fill="x", pady=4, ipady=5)
         api_entry.insert(0, self.config.get("api_key", DEFAULT_API_KEY))
-        api_entry.bind("<FocusIn>", lambda e: api_entry.config(highlightbackground=APOD_PRIMARY))
-        api_entry.bind("<FocusOut>", lambda e: api_entry.config(highlightbackground=BORDER_DEFAULT))
+        api_entry.bind("<FocusIn>", lambda e: api_entry.configure(border_color=APOD_PRIMARY))
+        api_entry.bind("<FocusOut>", lambda e: api_entry.configure(border_color=BORDER_DEFAULT))
         tk.Label(f1, text="默认使用 DEMO_KEY（每小时限流 30 次），建议申请免费 Key",
                  bg=BG_APP, fg=TEXT_TERTIARY, font=FONT_TINY).pack(anchor="w")
 
@@ -1738,10 +1617,10 @@ class NASAApp:
 
     # ========== 使用说明 ==========
     def _show_help(self):
-        win = tk.Toplevel(self.root)
+        win = ctk.CTkToplevel(self.root)
         win.title("使用说明")
         win.geometry("560x560")
-        win.configure(bg=BG_APP)
+        win.configure(fg_color=BG_APP)
         win.resizable(False, False)
         win.transient(self.root)
         win.grab_set()
@@ -1773,8 +1652,8 @@ class NASAApp:
         body = tk.Frame(win, bg=BG_APP)
         body.pack(fill="both", expand=True, padx=24, pady=4)
         for title, color, text in sections:
-            sec = tk.Frame(body, bg=BG_CARD, highlightbackground=BORDER_SUBTLE,
-                           highlightthickness=1)
+            sec = ctk.CTkFrame(body, fg_color=BG_CARD, border_color=BORDER_SUBTLE,
+                              border_width=1, corner_radius=10)
             sec.pack(fill="x", pady=6)
             tk.Label(sec, text=title, bg=BG_CARD, fg=color, font=FONT_BODY).pack(
                 anchor="w", padx=12, pady=(8, 2))
@@ -1844,10 +1723,10 @@ class NASAApp:
     # ========== 关闭行为 ==========
     def _on_close(self):
         """点击 X 按钮时弹出选择对话框"""
-        dialog = tk.Toplevel(self.root)
+        dialog = ctk.CTkToplevel(self.root)
         dialog.title("退出选项")
         dialog.geometry("380x210")
-        dialog.configure(bg=BG_SURFACE)
+        dialog.configure(fg_color=BG_SURFACE)
         dialog.resizable(False, False)
         dialog.transient(self.root)
         dialog.grab_set()
@@ -1894,7 +1773,8 @@ class NASAApp:
 
 
 def main():
-    root = tk.Tk()
+    ctk.set_appearance_mode("dark")
+    root = ctk.CTk()
     NASAApp(root)
     root.mainloop()
 
