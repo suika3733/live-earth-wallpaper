@@ -146,4 +146,20 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        # 兜底: 异常写入日志, 避免窗口模式静默退出难以排查
+        import traceback
+        try:
+            if getattr(sys, "frozen", False):
+                base_dir = os.path.dirname(os.path.abspath(sys.executable))
+            else:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+            log_path = os.path.join(base_dir, "error.log")
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write("=" * 40 + "\n")
+                f.write(traceback.format_exc())
+        except Exception:
+            pass
+        raise
