@@ -101,15 +101,12 @@ svg { display: block; }
 .titlebar-spacer { display: none; }
 .sidebar-brand { display: none; }
 .brand-icon {
-  width: 16px; height: 16px; border-radius: 50%;
-  background: linear-gradient(135deg, #2D8CF0, #4ECCA3);
-  box-shadow: 0 0 8px rgba(45,140,240,0.5);
-  position: relative;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  -webkit-user-drag: none;
 }
-.brand-icon::after {
-  content: ""; position: absolute; inset: 4px;
-  border-radius: 50%; background: var(--bg-sidebar);
-}
+.brand-icon::after { display: none; }
 .brand-name {
   font-size: 13px; font-weight: 700; letter-spacing: -0.3px;
   color: var(--text-primary);
