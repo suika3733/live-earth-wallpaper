@@ -222,12 +222,19 @@
     );
     // 选中波段后自动获取
     showLoading("sdo");
-    const d = await api.fetch_sdo();
-    hideLoading("sdo");
-    if (d.ok) {
-      setPreview("sdo", d);
-      setOverlay("sdo", { title: d.title, info: d.meta, image: d.image });
-      setStatus(d.status, true);
+    try {
+      const d = await api.fetch_sdo();
+      if (d.ok) {
+        setPreview("sdo", d);
+        setOverlay("sdo", { title: d.title, info: d.meta, image: d.image });
+        setStatus(d.status, true);
+      } else {
+        setStatus(d.msg || "获取失败", false);
+      }
+    } catch (e) {
+      setStatus("网络异常，请检查连接", false);
+    } finally {
+      hideLoading("sdo");
     }
   }
 
@@ -255,11 +262,18 @@
     $("apod-set").onclick = () => doWallpaper("set_apod_wallpaper");
     $("apod-update").onclick = async () => {
       showLoading("apod");
-      const d = await api.update_now();
-      hideLoading("apod");
-      if (d.ok) {
-        renderApod(d.apod);
-        renderCategories(d.categories);
+      try {
+        const d = await api.update_now();
+        if (d.ok) {
+          renderApod(d.apod);
+          renderCategories(d.categories);
+        } else {
+          setStatus(d.msg || "更新失败", false);
+        }
+      } catch (e) {
+        setStatus("网络异常，请检查连接", false);
+      } finally {
+        hideLoading("apod");
       }
     };
     $("btn-fetch-history").onclick = async () => {
@@ -267,14 +281,19 @@
       if (!days) return;
       const n = parseInt(days, 10) || 10;
       showLoading("apod");
-      const d = await api.fetch_apod(n);
-      hideLoading("apod");
-      if (d.ok) {
-        renderApod(d.apod);
-        renderCategories(d.categories);
-        setStatus("已获取 " + d.count + " 张图片", true);
-      } else {
-        setStatus(d.msg || "获取失败", false);
+      try {
+        const d = await api.fetch_apod(n);
+        if (d.ok) {
+          renderApod(d.apod);
+          renderCategories(d.categories);
+          setStatus("已获取 " + d.count + " 张图片", true);
+        } else {
+          setStatus(d.msg || "获取失败", false);
+        }
+      } catch (e) {
+        setStatus("网络异常，请检查连接", false);
+      } finally {
+        hideLoading("apod");
       }
     };
 
@@ -286,14 +305,19 @@
     bindSeg("sat-size-seg", (v) => api.set_sat_size(v));
     $("sat-fetch").onclick = async () => {
       showLoading("sat");
-      const d = await api.fetch_satellite();
-      hideLoading("sat");
-      if (d.ok) {
-        setPreview("sat", d);
-        setOverlay("sat", { title: d.title, info: d.meta, image: d.image });
-        setStatus(d.status, true);
-      } else {
-        setStatus(d.msg || "获取失败", false);
+      try {
+        const d = await api.fetch_satellite();
+        if (d.ok) {
+          setPreview("sat", d);
+          setOverlay("sat", { title: d.title, info: d.meta, image: d.image });
+          setStatus(d.status, true);
+        } else {
+          setStatus(d.msg || "获取失败", false);
+        }
+      } catch (e) {
+        setStatus("网络异常，请检查连接", false);
+      } finally {
+        hideLoading("sat");
       }
     };
     $("sat-set").onclick = () => doWallpaper("set_sat_wallpaper");
@@ -305,14 +329,19 @@
     // SDO
     $("sdo-fetch").onclick = async () => {
       showLoading("sdo");
-      const d = await api.fetch_sdo();
-      hideLoading("sdo");
-      if (d.ok) {
-        setPreview("sdo", d);
-        setOverlay("sdo", { title: d.title, info: d.meta, image: d.image });
-        setStatus(d.status, true);
-      } else {
-        setStatus(d.msg || "获取失败", false);
+      try {
+        const d = await api.fetch_sdo();
+        if (d.ok) {
+          setPreview("sdo", d);
+          setOverlay("sdo", { title: d.title, info: d.meta, image: d.image });
+          setStatus(d.status, true);
+        } else {
+          setStatus(d.msg || "获取失败", false);
+        }
+      } catch (e) {
+        setStatus("网络异常，请检查连接", false);
+      } finally {
+        hideLoading("sdo");
       }
     };
     $("sdo-set").onclick = () => doWallpaper("set_sdo_wallpaper");
@@ -342,8 +371,14 @@
     });
 
     // 关闭对话框
-    $("close-min").onclick = () => api && api.minimize();
-    $("close-quit").onclick = () => api && api.quit_app();
+    $("close-min").onclick = async () => {
+      closeModal("close-modal");
+      if (api) await api.minimize();
+    };
+    $("close-quit").onclick = async () => {
+      closeModal("close-modal");
+      if (api) await api.quit_app();
+    };
 
     // 模态框关闭 (X / 遮罩 / 取消按钮)
     document.querySelectorAll("[data-close]").forEach((b) => {

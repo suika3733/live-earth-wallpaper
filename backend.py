@@ -654,6 +654,9 @@ class RealEarthBackend:
                 self.window.destroy()
             except Exception:
                 pass
+        # 确保进程真正退出（pywebview window.destroy 不一定能让 start() 返回）
+        import os, threading
+        threading.Thread(target=lambda: os._exit(0), daemon=True).start()
         return {"ok": True}
 
     def get_initial_state(self):

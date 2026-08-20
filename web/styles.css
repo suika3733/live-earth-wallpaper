@@ -98,6 +98,8 @@ svg { display: block; }
   -webkit-app-region: drag;
 }
 .brand { display: flex; align-items: center; gap: 8px; }
+.titlebar-spacer { display: none; }
+.sidebar-brand { display: none; }
 .brand-icon {
   width: 16px; height: 16px; border-radius: 50%;
   background: linear-gradient(135deg, #2D8CF0, #4ECCA3);

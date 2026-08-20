@@ -47,7 +47,7 @@ SATELLITE_CACHE_DIR = IMAGE_CACHE_DIR / "satellite"
 def _get_time_code(satellite: str, color: str) -> tuple[int, str]:
     """获取最新可用时间戳"""
     url = f"{RAMMB_BASE}/data/json/{satellite}/full_disk/{color}/latest_times.json"
-    with urllib.request.urlopen(url) as f:
+    with urllib.request.urlopen(url, timeout=15) as f:
         data = json.load(f)
     latest = data["timestamps_int"][0]
     date = datetime.datetime.strptime(str(latest), "%Y%m%d%H%M%S").strftime("%Y/%m/%d")
@@ -105,56 +105,60 @@ def fetch_satellite_image(
         logger.error(f"Unknown color mode: {color}")
         return None
 
-    scale = _calc_scale(satellite, target_size)
-    base_url, time_code = _build_url(satellite, scale, color)
+    try:
+        scale = _calc_scale(satellite, target_size)
+        base_url, time_code = _build_url(satellite, scale, color)
 
-    # 缓存路径
-    SATELLITE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_key = f"{satellite}_{color}_{scale}_{time_code}"
-    cache_path = SATELLITE_CACHE_DIR / f"{cache_key}.jpg"
+        # 缓存路径
+        SATELLITE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_key = f"{satellite}_{color}_{scale}_{time_code}"
+        cache_path = SATELLITE_CACHE_DIR / f"{cache_key}.jpg"
 
-    if not force and cache_path.exists():
-        logger.info(f"Using cached: {cache_path}")
+        if not force and cache_path.exists():
+            logger.info(f"Using cached: {cache_path}")
+            return str(cache_path)
+
+        # 瓦片数量: 2^scale x 2^scale
+        tiles_n = 2 ** scale
+        tilesize = SATELLITE_SIZES[satellite]
+
+        logger.info(f"Fetching {satellite} ({color}), scale={scale}, {tiles_n}x{tiles_n} tiles")
+
+        # 并行下载所有瓦片
+        tile_map: dict[tuple[int, int], Image.Image] = {}
+
+        def _fetch(row: int, col: int):
+            url = f"{base_url}/{str(row).zfill(3)}_{str(col).zfill(3)}.png"
+            img = _download_tile(url)
+            return (row, col), img
+
+        with ThreadPoolExecutor(max_workers=min(tiles_n * tiles_n, 16)) as pool:
+            futures = {pool.submit(_fetch, r, c): (r, c)
+                       for r in range(tiles_n) for c in range(tiles_n)}
+            for future in as_completed(futures):
+                try:
+                    pos, img = future.result()
+                    tile_map[pos] = img
+                except Exception as e:
+                    logger.warning(f"Tile download failed: {e}")
+
+        if not tile_map:
+            logger.error("All tile downloads failed")
+            return None
+
+        # 拼接瓦片
+        full_w = tilesize * tiles_n
+        full_h = tilesize * tiles_n
+        canvas = Image.new("RGB", (full_w, full_h))
+
+        for (r, c), img in tile_map.items():
+            x = c * tilesize
+            y = r * tilesize
+            canvas.paste(img, (x, y))
+
+        canvas.save(str(cache_path), "JPEG", quality=94)
+        logger.info(f"Saved: {cache_path} ({full_w}x{full_h})")
         return str(cache_path)
-
-    # 瓦片数量: 2^scale x 2^scale
-    tiles_n = 2 ** scale
-    tilesize = SATELLITE_SIZES[satellite]
-
-    logger.info(f"Fetching {satellite} ({color}), scale={scale}, {tiles_n}x{tiles_n} tiles")
-
-    # 并行下载所有瓦片
-    tile_map: dict[tuple[int, int], Image.Image] = {}
-
-    def _fetch(row: int, col: int):
-        url = f"{base_url}/{str(row).zfill(3)}_{str(col).zfill(3)}.png"
-        img = _download_tile(url)
-        return (row, col), img
-
-    with ThreadPoolExecutor(max_workers=min(tiles_n * tiles_n, 16)) as pool:
-        futures = {pool.submit(_fetch, r, c): (r, c)
-                   for r in range(tiles_n) for c in range(tiles_n)}
-        for future in as_completed(futures):
-            try:
-                pos, img = future.result()
-                tile_map[pos] = img
-            except Exception as e:
-                logger.warning(f"Tile download failed: {e}")
-
-    if not tile_map:
-        logger.error("All tile downloads failed")
+    except Exception as e:
+        logger.error(f"fetch_satellite_image error: {e}")
         return None
-
-    # 拼接瓦片
-    full_w = tilesize * tiles_n
-    full_h = tilesize * tiles_n
-    canvas = Image.new("RGB", (full_w, full_h))
-
-    for (r, c), img in tile_map.items():
-        x = c * tilesize
-        y = r * tilesize
-        canvas.paste(img, (x, y))
-
-    canvas.save(str(cache_path), "JPEG", quality=94)
-    logger.info(f"Saved: {cache_path} ({full_w}x{full_h})")
-    return str(cache_path)
